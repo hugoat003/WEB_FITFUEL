@@ -1,3 +1,4 @@
+import React from "react";
 /* FITFUEL — tienda: header, hero, quiz, catálogo */
 const { useState, useMemo, useEffect, useRef } = React;
 
@@ -168,7 +169,7 @@ function ProductCard({ p, onAdd, onQuick, fav, toggleFav }) {
           <Icon name="heart" size={17} fill={fav} stroke={fav ? 0 : 2} />
         </button>
         <a href={"#/producto/" + p.id} className="pcard-link" aria-label={p.name}>
-          <Ph label="foto producto" hue={p.hue} tub={true} />
+          <ProdImg image={p.image} label="foto producto" hue={p.hue} tub={true} />
         </a>
         <div className="pcard-quick">
           <button className="btn btn-ghost btn-block btn-sm" onClick={() => onQuick(p)}>Vista rápida</button>
@@ -284,7 +285,7 @@ function QuickView({ product, onClose, onAdd }) {
         <div className="modal-vis">
           <button className="icon-btn modal-close" onClick={onClose} aria-label="Cerrar"><Icon name="x" size={18} /></button>
           {product.badge && <span className="pcard-badge" style={{ top: 26, left: 26 }}>{product.badge}</span>}
-          <Ph label="foto producto · bote" hue={product.hue} tub={true} />
+          <ProdImg image={product.image} label="foto producto · bote" hue={product.hue} tub={true} />
         </div>
         <div className="modal-body">
           <span className="pcard-cat">{cat ? cat.label : ""}</span>

@@ -1,3 +1,4 @@
+import React from "react";
 /* FITFUEL — páginas (router por hash) */
 
 function Breadcrumb({ items }) {
@@ -145,7 +146,7 @@ function ProductPage(ctx, route) {
         <div className="pdp">
           <div className="pdp-vis">
             {p.badge && <span className="pcard-badge" style={{ top: 22, left: 22 }}>{p.badge}</span>}
-            <Ph label="foto producto · bote" hue={p.hue} tub={true} />
+            <ProdImg image={p.image} label="foto producto · bote" hue={p.hue} tub={true} />
           </div>
           <div className="pdp-info">
             <span className="pcard-cat">{cat ? cat.label : ""}</span>
@@ -188,7 +189,7 @@ function ProductPage(ctx, route) {
 
             <div className="pdp-trust">
               <div><Icon name="truck" size={18} /><span>Envío gratis en pedidos +{money(FF.FREE_SHIP)}</span></div>
-              <div><Icon name="ret" size={18} /><span>30 días para devolver</span></div>
+              <div><Icon name="shield" size={18} /><span>Productos 100% originales</span></div>
               <div><Icon name="lab" size={18} /><span>Testado en laboratorio</span></div>
             </div>
           </div>
@@ -220,7 +221,7 @@ function BlogPage() {
         <div className="blog-grid">
           {FF.BLOG.map((b) => (
             <a className="bl" key={b.id} href={"#/blog/" + b.id}>
-              <div className="bl-vis"><Ph label="imagen artículo" hue={b.hue} /></div>
+              <div className="bl-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
               <div className="bl-body">
                 <span className="bl-tag">{b.cat}</span>
                 <h4>{b.title}</h4>
@@ -247,7 +248,7 @@ function BlogPostPage(route) {
         <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Blog", to: "/blog" }, { label: b.cat }]} />
         <span className="bl-tag">{b.cat} · {b.read} de lectura</span>
         <h1 className="display article-title">{b.title}</h1>
-        <div className="article-vis"><Ph label="imagen artículo" hue={b.hue} /></div>
+        <div className="article-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
         <article className="article-body">
           {(b.body || [b.excerpt]).map((par, i) => <p key={i}>{par}</p>)}
         </article>
@@ -259,7 +260,7 @@ function BlogPostPage(route) {
             <div className="blog-grid">
               {others.map((o) => (
                 <a className="bl" key={o.id} href={"#/blog/" + o.id}>
-                  <div className="bl-vis"><Ph label="imagen artículo" hue={o.hue} /></div>
+                  <div className="bl-vis"><ProdImg image={o.image} label="imagen artículo" hue={o.hue} /></div>
                   <div className="bl-body">
                     <span className="bl-tag">{o.cat}</span>
                     <h4>{o.title}</h4>
@@ -276,7 +277,59 @@ function BlogPostPage(route) {
 }
 
 /* ---------------- RESEÑAS ---------------- */
-function ReviewsPage() {
+function ReviewForm({ ctx }) {
+  const [sent, setSent] = React.useState(false);
+  const submit = (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const g = (k) => (f.get(k) || "").toString().trim();
+    const msg =
+      `*Nueva reseña para FITFUEL*\n\n` +
+      `Nombre: ${g("nombre")}\n` +
+      (g("lugar") ? `Lugar: ${g("lugar")}\n` : "") +
+      `Valoración: ${g("rating")}/5\n\n` +
+      `"${g("comentario")}"`;
+    const c = FF.CONTACT || {};
+    const digits = (c.whatsapp || "").replace(/[^0-9]/g, "");
+    if (digits) window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, "_blank");
+    else if (c.email) window.open(`mailto:${c.email}?subject=Reseña FITFUEL&body=${encodeURIComponent(msg)}`, "_blank");
+    setSent(true);
+    ctx && ctx.toast && ctx.toast("¡Gracias por tu reseña! ✦");
+  };
+  if (sent) {
+    return (
+      <div className="review-done">
+        <span className="tk"><Icon name="check" size={22} stroke={3} /></span>
+        <h3>¡Gracias por compartir!</h3>
+        <p>Recibimos tu reseña. La revisamos y, si todo está en orden, la publicamos pronto.</p>
+        <button className="btn btn-ghost" onClick={() => setSent(false)}>Enviar otra</button>
+      </div>
+    );
+  }
+  return (
+    <form className="review-form" onSubmit={submit}>
+      <h3 className="co-h">Deja tu reseña</h3>
+      <div className="co-row">
+        <label>Nombre<input required name="nombre" type="text" placeholder="Tu nombre" /></label>
+        <label>Lugar (opcional)<input name="lugar" type="text" placeholder="Ciudad / departamento" /></label>
+      </div>
+      <label>Valoración
+        <select name="rating" defaultValue="5">
+          <option value="5">★★★★★ — Excelente</option>
+          <option value="4">★★★★ — Muy buena</option>
+          <option value="3">★★★ — Buena</option>
+          <option value="2">★★ — Regular</option>
+          <option value="1">★ — Mala</option>
+        </select>
+      </label>
+      <label>Tu experiencia<textarea required name="comentario" rows="4" placeholder="Cuéntanos cómo te fue con el producto…" /></label>
+      <button className="btn btn-primary btn-block" type="submit">Enviar reseña <Icon name="arrow" size={18} /></button>
+      <p className="co-disclaimer">Las reseñas se revisan antes de publicarse. No necesitas crear una cuenta.</p>
+    </form>
+  );
+}
+
+function ReviewsPage(ctx) {
   return (
     <section className="page">
       <div className="ff-wrap">
@@ -299,12 +352,13 @@ function ReviewsPage() {
               </div>
               <p className="quote">"{t.quote}"</p>
               <div className="who">
-                <Avatar name={t.name} hue={t.hue} />
+                <Avatar name={t.name} hue={t.hue} image={t.avatar} />
                 <div><b>{t.name}</b><span>{t.tag}</span></div>
               </div>
             </article>
           ))}
         </div>
+        <div className="review-cta"><ReviewForm ctx={ctx} /></div>
         <CtaBand />
       </div>
     </section>
@@ -387,13 +441,12 @@ const CONTENT_PAGES = {
     ],
   },
   devoluciones: {
-    eyebrow: "Ayuda", title: "Devoluciones y garantía",
-    sub: "Tu compra está protegida por 30 días.",
+    eyebrow: "Ayuda", title: "Política de devoluciones",
+    sub: "Compra informada: no aceptamos devoluciones.",
     blocks: [
-      { h: "30 días de garantía", p: "Si no quedas satisfecho, tienes 30 días desde la fecha de entrega para solicitar la devolución de cualquier producto sin abrir y en su empaque original." },
-      { h: "Producto defectuoso", p: "Si recibes un producto dañado o con un defecto de fábrica, te lo reponemos sin costo. Solo escríbenos por WhatsApp con una foto del producto." },
-      { h: "Cómo solicitarla", p: "Escríbenos a hola@fitfuel.gt o por WhatsApp indicando tu número de pedido. Coordinamos la recolección y procesamos tu reembolso en un máximo de 5 días hábiles." },
-      { h: "Reembolsos", p: "El reembolso se realiza por el mismo medio de pago utilizado en la compra. Las transferencias se acreditan en 1-3 días hábiles." },
+      { h: "No se aceptan devoluciones ni cambios", p: "Por tratarse de productos de consumo, y por higiene y seguridad, no aceptamos devoluciones, cambios ni reembolsos una vez realizada la compra. Te pedimos revisar bien tu pedido antes de confirmarlo." },
+      { h: "Asesoría antes de comprar", p: "¿No sabes qué suplemento elegir? Escríbenos por WhatsApp antes de tu compra y te asesoramos sin compromiso para que elijas con seguridad." },
+      { h: "Producto dañado en el envío", p: "Si tu pedido llega físicamente dañado por el transporte, contáctanos por WhatsApp dentro de las 24 horas siguientes a la entrega, con fotos del empaque y el producto, y lo revisamos caso por caso." },
     ],
   },
   faq: {
@@ -476,6 +529,219 @@ function FaqItem({ q, a }) {
   );
 }
 
+/* ---------------- PACK ---------------- */
+function PackPage(ctx, route) {
+  const id = route.parts[1];
+  const b = FF.BUNDLES.find((x) => x.id === id);
+  React.useEffect(() => { window.scrollTo(0, 0); }, [id]);
+  if (!b) return <NotFoundPage msg="No encontramos ese pack." />;
+  const value = FF.bundleValue(b);
+  const save = value > b.price ? Math.round((1 - b.price / value) * 100) : 0;
+  const color = `oklch(0.72 0.17 ${b.hue})`;
+  const products = (b.productIds || [])
+    .map((pid) => FF.PRODUCTS.find((p) => p.id === pid))
+    .filter(Boolean);
+  return (
+    <section className="page">
+      <div className="ff-wrap">
+        <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Packs", to: "/packs" }, { label: b.name }]} />
+
+        <div className="packhero" style={{ "--ph-color": color }}>
+          <div className="packhero-glow" />
+          <div className="packhero-info">
+            {save > 0 && <span className="save-tag">AHORRA {save}%</span>}
+            <h1 className="display packhero-title">{b.name}</h1>
+            <p className="packhero-tag">{b.tagline}</p>
+            {b.desc && <p className="packhero-desc">{b.desc}</p>}
+            <div className="packhero-buy">
+              <div className="price pdp-price" style={{ margin: 0 }}>
+                <b>{money(b.price)}</b>
+                {value > b.price && <s>{money(value)}</s>}
+              </div>
+              <button className="btn btn-primary btn-lg" onClick={() => ctx.onAddBundle(b)}>
+                Añadir pack <Icon name="arrow" size={18} />
+              </button>
+            </div>
+            <p className="packhero-note">
+              <Icon name="check" size={15} stroke={3} /> {products.length} productos{value > b.price && <> · te ahorras {money(value - b.price)} vs comprarlos por separado</>}
+            </p>
+          </div>
+        </div>
+
+        <div className="sec-head" style={{ marginTop: 50 }}>
+          <div>
+            <span className="eyebrow">Qué incluye</span>
+            <h2 className="display">Los productos del pack</h2>
+            <p>Toca cualquiera para ver su ficha completa.</p>
+          </div>
+        </div>
+        <div className="pgrid">
+          {products.map((p) => (
+            <ProductCard key={p.id} p={p} onAdd={ctx.onAdd} onQuick={ctx.onQuick}
+              fav={ctx.favs.has(p.id)} toggleFav={ctx.toggleFav} />
+          ))}
+        </div>
+
+        <div className="pdp-trust" style={{ marginTop: 40, maxWidth: 520 }}>
+          <div><Icon name="truck" size={18} /><span>Envío gratis en pedidos +{money(FF.FREE_SHIP)}</span></div>
+          <div><Icon name="shield" size={18} /><span>Productos 100% originales</span></div>
+          <div><Icon name="lab" size={18} /><span>Testado en laboratorio</span></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- CHECKOUT ---------------- */
+const GT_DEPTS = [
+  "Guatemala", "Sacatepéquez", "Chimaltenango", "Escuintla", "Quetzaltenango",
+  "Sololá", "Totonicapán", "Suchitepéquez", "Retalhuleu", "San Marcos",
+  "Huehuetenango", "Quiché", "Alta Verapaz", "Baja Verapaz", "Petén",
+  "Izabal", "Zacapa", "Chiquimula", "Jalapa", "Jutiapa", "El Progreso", "Santa Rosa",
+];
+const SHIP_COST = 35;
+
+function CheckoutPage(ctx) {
+  const items = ctx.cartItems || [];
+  const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+  const freeShip = subtotal >= (FF.FREE_SHIP || 400) || subtotal === 0;
+  const shipping = freeShip ? 0 : SHIP_COST;
+  const total = subtotal + shipping;
+  const [order, setOrder] = React.useState(null);
+  React.useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  const placeOrder = (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const g = (k) => (f.get(k) || "").toString().trim();
+    const id = "FF-" + Math.floor(100000 + Math.random() * 900000);
+    const count = items.reduce((s, it) => s + it.qty, 0);
+
+    // Arma el mensaje del pedido para enviarlo por WhatsApp a la tienda
+    const lines = items.map((it) => `• ${it.qty}× ${it.name} (${it.flavor}) — ${money(it.price * it.qty)}`);
+    const msg =
+      `*Nuevo pedido FITFUEL* #${id}\n\n` +
+      lines.join("\n") +
+      `\n\nSubtotal: ${money(subtotal)}\nEnvío: ${shipping === 0 ? "Gratis" : money(shipping)}\n*Total: ${money(total)}*\n\n` +
+      `*Cliente*\n${g("nombre")}\nTel: ${g("telefono")}\nCorreo: ${g("correo")}\n` +
+      `Dirección: ${g("direccion")}, ${g("municipio")}, ${g("departamento")}\n` +
+      (g("referencia") ? `Referencia: ${g("referencia")}\n` : "") +
+      `Pago: ${g("pago")}`;
+
+    const c = FF.CONTACT || {};
+    const digits = (c.whatsapp || "").replace(/[^0-9]/g, "");
+    if (digits) {
+      window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
+    setOrder({ id, total, count, sent: !!digits });
+    ctx.clearCart();
+    ctx.toast("¡Pedido enviado! ✦");
+  };
+
+  if (order) {
+    return (
+      <section className="page">
+        <div className="ff-wrap ff-narrow">
+          <div className="order-done">
+            <span className="tk"><Icon name="check" size={30} stroke={3} /></span>
+            <h1 className="display">¡Gracias por tu pedido!</h1>
+            <p>Tu pedido <b>#{order.id}</b> está listo. {order.sent
+              ? "Abrimos WhatsApp con el resumen — solo envíalo para confirmar el pago y la entrega."
+              : "Escríbenos por WhatsApp con tu número de pedido para coordinar el pago y la entrega."}</p>
+            <div className="order-sum">
+              <div><span>Productos</span><b>{order.count}</b></div>
+              <div><span>Total</span><b>{money(order.total)}</b></div>
+            </div>
+            <div className="order-actions">
+              <a className="btn btn-primary btn-lg" href="#/catalogo">Seguir comprando <Icon name="arrow" size={18} /></a>
+              <a className="btn btn-ghost btn-lg" href="#/">Ir al inicio</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <section className="page">
+        <div className="ff-wrap ff-narrow">
+          <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Checkout" }]} />
+          <div className="cart-empty" style={{ padding: "70px 20px" }}>
+            <Icon name="cart" size={40} />
+            <div>Tu carrito está vacío.<br />Agrega productos antes de finalizar la compra.</div>
+            <a className="btn btn-primary" href="#/catalogo">Ver productos <Icon name="arrow" size={18} /></a>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="page">
+      <div className="ff-wrap">
+        <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Checkout" }]} />
+        <PageHead eyebrow="Casi listo" title="Finalizar compra" sub="Completa tus datos de envío y elige cómo pagar." />
+
+        <div className="checkout-grid">
+          <form className="checkout-form" onSubmit={placeOrder}>
+            <h3 className="co-h">Datos de contacto</h3>
+            <div className="co-row">
+              <label>Nombre completo<input required name="nombre" type="text" placeholder="Tu nombre" /></label>
+              <label>Teléfono / WhatsApp<input required name="telefono" type="tel" placeholder="+502 0000 0000" /></label>
+            </div>
+            <label>Correo<input required name="correo" type="email" placeholder="tucorreo@email.com" /></label>
+
+            <h3 className="co-h">Envío</h3>
+            <label>Dirección<input required name="direccion" type="text" placeholder="Calle, número, zona" /></label>
+            <div className="co-row">
+              <label>Departamento
+                <select required name="departamento" defaultValue="Guatemala">
+                  {GT_DEPTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </label>
+              <label>Municipio<input name="municipio" type="text" placeholder="Municipio" /></label>
+            </div>
+            <label>Referencia (opcional)<input name="referencia" type="text" placeholder="Casa color, punto de referencia…" /></label>
+
+            <h3 className="co-h">Pago</h3>
+            <div className="co-pay">
+              <label className="pay-opt"><input type="radio" name="pago" value="Contra entrega (efectivo)" defaultChecked /> <span><b>Contra entrega</b><small>Paga en efectivo al recibir</small></span></label>
+              <label className="pay-opt"><input type="radio" name="pago" value="Tarjeta (Visa/Mastercard)" /> <span><b>Tarjeta</b><small>Visa / Mastercard</small></span></label>
+              <label className="pay-opt"><input type="radio" name="pago" value="Transferencia bancaria" /> <span><b>Transferencia</b><small>Te enviamos los datos</small></span></label>
+            </div>
+
+            <button className="btn btn-primary btn-block btn-lg co-submit" type="submit">
+              Enviar pedido por WhatsApp · {money(total)} <Icon name="chat" size={18} />
+            </button>
+            <p className="co-disclaimer">Al confirmar, se abre WhatsApp con el resumen de tu pedido para coordinar el pago y la entrega.</p>
+          </form>
+
+          <aside className="checkout-sum">
+            <h3 className="co-h">Tu pedido</h3>
+            <div className="co-items">
+              {items.map((it) => (
+                <div className="co-item" key={it.id}>
+                  <div className="co-item-vis"><ProdImg image={it.image} label="" hue={it.hue} tub={true} /><span className="co-qty">{it.qty}</span></div>
+                  <div className="co-item-main">
+                    <b>{it.name}</b>
+                    <span>{it.flavor}</span>
+                  </div>
+                  <b className="co-item-price">{money(it.price * it.qty)}</b>
+                </div>
+              ))}
+            </div>
+            <div className="co-line"><span>Subtotal</span><b>{money(subtotal)}</b></div>
+            <div className="co-line"><span>Envío</span><b>{shipping === 0 ? "Gratis" : money(shipping)}</b></div>
+            <div className="co-total"><span>Total</span><b>{money(total)}</b></div>
+            {!freeShip && <p className="co-ship-note">Agrega {money((FF.FREE_SHIP || 400) - subtotal)} más para envío gratis</p>}
+          </aside>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---------------- 404 ---------------- */
 function NotFoundPage({ msg }) {
   return (
@@ -490,7 +756,7 @@ function NotFoundPage({ msg }) {
 }
 
 Object.assign(window, {
-  Breadcrumb, PageHead, HomePage, CatalogPage, GoalsPage, BundlesPage, ProductPage,
-  BlogPage, BlogPostPage, ReviewsPage, ContactPage, ContentPage, FaqItem, NotFoundPage,
+  Breadcrumb, PageHead, HomePage, CatalogPage, GoalsPage, BundlesPage, ProductPage, PackPage,
+  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, ContentPage, FaqItem, NotFoundPage,
   CONTENT_PAGES, INFO_PAGES,
 });

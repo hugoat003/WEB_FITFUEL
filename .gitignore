@@ -5,8 +5,10 @@ Desktop.ini
 *.swp
 .vscode/
 
-# Dependencias (no se usan: la app corre con CDN)
+# Dependencias y build
 node_modules/
+dist/
+.vite/
 
 # Temporales
 *.log

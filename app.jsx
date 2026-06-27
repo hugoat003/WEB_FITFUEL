@@ -1,3 +1,5 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
 /* FITFUEL — App raíz: router, estado, carrito, tweaks */
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -7,13 +9,51 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 }/*EDITMODE-END*/;
 
 const ITEM_INDEX = {};
-FF.PRODUCTS.forEach((p) => { ITEM_INDEX[p.id] = { id: p.id, name: p.name, flavor: p.flavor, price: p.price, hue: p.hue }; });
-FF.BUNDLES.forEach((b) => { ITEM_INDEX[b.id] = { id: b.id, name: b.name, flavor: "Pack · " + b.items.length + " productos", price: b.price, hue: b.hue }; });
+FF.PRODUCTS.forEach((p) => { ITEM_INDEX[p.id] = { id: p.id, name: p.name, flavor: p.flavor, price: p.price, hue: p.hue, image: p.image }; });
+FF.BUNDLES.forEach((b) => { ITEM_INDEX[b.id] = { id: b.id, name: b.name, flavor: "Pack · " + b.items.length + " productos", price: b.price, hue: b.hue, image: b.image }; });
+
+const PAGE_TITLES = {
+  "": "FITFUEL — Suplementos para rendir | Guatemala",
+  catalogo: "Catálogo — FITFUEL",
+  ofertas: "Ofertas — FITFUEL",
+  objetivos: "Tu objetivo — FITFUEL",
+  packs: "Packs — FITFUEL",
+  pack: "Pack — FITFUEL",
+  checkout: "Finalizar compra — FITFUEL",
+  producto: "Producto — FITFUEL",
+  blog: "Blog — FITFUEL",
+  resenas: "Reseñas — FITFUEL",
+  contacto: "Contacto — FITFUEL",
+  ayuda: "Ayuda — FITFUEL",
+  nosotros: "Sobre nosotros — FITFUEL",
+  calidad: "Calidad — FITFUEL",
+  afiliados: "Afiliados — FITFUEL",
+};
 
 const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
 
 function PageHost({ route, ctx }) {
   return renderPage(route, ctx);
+}
+
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidUpdate(prev) { if (prev.routeKey !== this.props.routeKey && this.state.error) this.setState({ error: null }); }
+  render() {
+    if (this.state.error) {
+      return (
+        <section className="page">
+          <div className="ff-wrap ff-narrow" style={{ textAlign: "center", padding: "70px 0" }}>
+            <h1 className="display" style={{ fontSize: "clamp(40px,9vw,80px)", color: "var(--accent)" }}>Ups</h1>
+            <p style={{ color: "var(--text-dim)", margin: "0 0 24px" }}>Algo salió mal en esta sección. Intenta volver al inicio.</p>
+            <a className="btn btn-primary btn-lg" href="#/">Volver al inicio <Icon name="arrow" size={18} /></a>
+          </div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function renderPage(route, ctx) {
@@ -24,9 +64,11 @@ function renderPage(route, ctx) {
     case "ofertas": return CatalogPage(ctx, route);
     case "objetivos": return GoalsPage(ctx);
     case "packs": return BundlesPage(ctx);
+    case "pack": return PackPage(ctx, route);
+    case "checkout": return CheckoutPage(ctx);
     case "producto": return ProductPage(ctx, route);
     case "blog": return route.parts[1] ? BlogPostPage(route) : BlogPage();
-    case "resenas": return ReviewsPage();
+    case "resenas": return ReviewsPage(ctx);
     case "contacto": return ContactPage(ctx);
     case "ayuda": {
       const data = CONTENT_PAGES[route.parts[1]];
@@ -71,6 +113,23 @@ function App() {
   // Scroll al inicio en cada cambio de ruta
   React.useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, [route.path]);
 
+  // Título del documento según la ruta (producto/pack/artículo usan su nombre)
+  React.useEffect(() => {
+    const seg = route.parts[0] || "";
+    let title = PAGE_TITLES[seg] || "FITFUEL";
+    if (seg === "producto" && route.parts[1]) {
+      const p = FF.PRODUCTS.find((x) => x.id === route.parts[1]);
+      if (p) title = `${p.name} · ${p.flavor} — FITFUEL`;
+    } else if (seg === "pack" && route.parts[1]) {
+      const b = FF.BUNDLES.find((x) => x.id === route.parts[1]);
+      if (b) title = `${b.name} — FITFUEL`;
+    } else if (seg === "blog" && route.parts[1]) {
+      const a = FF.BLOG.find((x) => x.id === route.parts[1]);
+      if (a) title = `${a.title} — FITFUEL`;
+    }
+    document.title = title;
+  }, [route.path]);
+
   const toast = (msg) => {
     const id = ++toastId.current;
     setToasts((ts) => [...ts, { id, msg }]);
@@ -98,7 +157,8 @@ function App() {
 
   const cartCount = cart.reduce((s, x) => s + x.qty, 0);
   const cartItems = cart.map((x) => ({ ...ITEM_INDEX[x.id], qty: x.qty })).filter((x) => x.id);
-  const onCheckout = () => { toast("Esto es una demo de diseño ✦"); };
+  const clearCart = () => setCart([]);
+  const onCheckout = () => { setCartOpen(false); navigate("/checkout"); };
 
   // Anima elementos .reveal al entrar en viewport
   React.useEffect(() => {
@@ -113,6 +173,7 @@ function App() {
     onAdd, onAddBundle, onQuick: setQuick, favs, toggleFav,
     query, setQuery, activeGoals: goals, toggleGoal, toast,
     openCart: () => setCartOpen(true),
+    cartItems, clearCart,
   };
 
   return (
@@ -122,7 +183,9 @@ function App() {
       {t.marquee && <Marquee />}
 
       <main>
-        <PageHost route={route} ctx={ctx} key={route.path} />
+        <ErrorBoundary routeKey={route.path}>
+          <PageHost route={route} ctx={ctx} key={route.path} />
+        </ErrorBoundary>
       </main>
 
       <Footer />

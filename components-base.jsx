@@ -1,3 +1,4 @@
+import React from "react";
 /* FITFUEL — base: iconos, placeholders, helpers, router */
 
 /* ---------- Moneda: Quetzal guatemalteco (GTQ) ---------- */
@@ -98,6 +99,14 @@ function Ph({ label, hue, className = "", tub = false }) {
   );
 }
 
+// Imagen real si existe (image = data URL o URL); si no, placeholder con tono.
+function ProdImg({ image, label, hue, tub = false, className = "" }) {
+  if (image) {
+    return <img className={"ph-img " + className} src={image} alt={label || ""} loading="lazy" />;
+  }
+  return <Ph label={label} hue={hue} tub={tub} className={className} />;
+}
+
 function Stars({ rating, reviews }) {
   return (
     <div className="stars">
@@ -108,7 +117,10 @@ function Stars({ rating, reviews }) {
   );
 }
 
-function Avatar({ name, hue }) {
+function Avatar({ name, hue, image }) {
+  if (image) {
+    return <img className="avatar" src={image} alt={name || ""} loading="lazy" style={{ objectFit: "cover" }} />;
+  }
   return (
     <div className="avatar" style={{
       display: "grid", placeItems: "center",
@@ -119,4 +131,4 @@ function Avatar({ name, hue }) {
   );
 }
 
-Object.assign(window, { money, num, Icon, Ph, Stars, Avatar, parseHash, navigate, useRoute, Link });
+Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseHash, navigate, useRoute, Link });

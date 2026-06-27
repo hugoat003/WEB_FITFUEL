@@ -114,20 +114,36 @@ FF.PRODUCTS = [
 FF.BUNDLES = [
   {
     id: "pack-volumen", name: "Pack VOLUMEN", tagline: "Gana masa sin pensar",
-    items: ["Whey Protein", "Creatina Mono", "ZMA Recovery"], price: 679, value: 849,
-    goal: "musculo", hue: 92,
+    items: ["Whey Protein", "Creatina Mono", "ZMA Recovery"], productIds: ["whey-vainilla", "crea-mono", "zma"],
+    price: 679, goal: "musculo", hue: 92,
+    desc: "El stack definitivo para construir masa: proteína de calidad, la creatina más estudiada y un recuperador para descansar mejor. Todo lo que necesitas para crecer, en un solo pack y a mejor precio.",
   },
   {
     id: "pack-definicion", name: "Pack DEFINICIÓN", tagline: "Marca cada fibra",
-    items: ["Iso Whey Zero", "BCAA 2:1:1", "Omega-3 Ultra"], price: 719, value: 879,
-    goal: "definir", hue: 12,
+    items: ["Iso Whey Zero", "BCAA 2:1:1", "Omega-3 Ultra"], productIds: ["iso-fresa", "bcaa", "omega"],
+    price: 719, goal: "definir", hue: 12,
+    desc: "Pensado para etapa de definición: aislado de proteína sin azúcar, aminoácidos para conservar músculo y Omega-3 para tu salud mientras estás en déficit. Marca cada fibra sin perder músculo.",
   },
   {
     id: "pack-energia", name: "Pack ENERGÍA", tagline: "Domina cada sesión",
-    items: ["Pre-Entreno IGNITE", "Creatina Mono", "Omega-3 Ultra"], price: 595, value: 719,
-    goal: "energia", hue: 350,
+    items: ["Pre-Entreno IGNITE", "Creatina Mono", "Omega-3 Ultra"], productIds: ["ignite", "crea-mono", "omega"],
+    price: 595, goal: "energia", hue: 350,
+    desc: "Para entrenar con todo: un pre-entreno intenso para el foco y el bombeo, creatina para la fuerza y Omega-3 para la recuperación articular. Domina cada serie.",
   },
 ];
+
+// Valor "por separado" de un pack = suma de los precios reales de sus productos.
+// Se calcula en runtime (refleja siempre el precio actual de cada producto).
+FF.bundleValue = function (b) {
+  if (b && b.productIds && b.productIds.length) {
+    const sum = b.productIds.reduce((s, id) => {
+      const p = FF.PRODUCTS.find((x) => x.id === id);
+      return s + (p ? p.price : 0);
+    }, 0);
+    if (sum > 0) return sum;
+  }
+  return b && b.value ? b.value : b.price;
+};
 
 // Testimonios (Guatemala)
 FF.TESTIMONIALS = [
@@ -172,7 +188,7 @@ FF.BLOG = [
 
 // Stats marquee (Guatemala)
 FF.STATS = [
-  "ENVÍO GRATIS +Q400", "TESTADO EN LABORATORIO", "+50,000 ATLETAS", "30 DÍAS DE GARANTÍA",
+  "ENVÍO GRATIS +Q400", "TESTADO EN LABORATORIO", "+50,000 ATLETAS", "PRODUCTOS 100% ORIGINALES",
   "SIN AZÚCARES OCULTOS", "ENVÍO A TODA GUATEMALA",
 ];
 
@@ -193,7 +209,7 @@ FF.FAQ = [
   { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de Q35. En pedidos mayores a Q400 el envío es totalmente gratis a toda Guatemala." },
   { q: "¿Qué métodos de pago aceptan?", a: "Aceptamos tarjetas Visa y Mastercard, transferencia bancaria y pago contra entrega (efectivo) en la Ciudad de Guatemala." },
   { q: "¿Los productos son originales?", a: "100%. Todos nuestros suplementos son originales, sellados y testados en laboratorio. Cada lote cuenta con su certificado de análisis." },
-  { q: "¿Puedo devolver un producto?", a: "Sí. Tienes 30 días desde la compra para devolver cualquier producto sin abrir y recibir tu reembolso completo. Ver la página de Devoluciones para el detalle." },
+  { q: "¿Aceptan devoluciones?", a: "Por higiene y seguridad del producto, no aceptamos devoluciones ni cambios una vez realizada la compra. Si tienes dudas sobre qué suplemento elegir, escríbenos por WhatsApp antes de comprar y te asesoramos sin compromiso." },
   { q: "¿Cómo sé qué suplemento necesito?", a: "Usa nuestro selector de objetivos: eliges tu meta (ganar músculo, definir, energía o recuperación) y te mostramos exactamente lo que necesitas." },
 ];
 
@@ -209,5 +225,13 @@ FF.FAQ = [
     if (saved.stats)        FF.STATS        = saved.stats;
     if (saved.categories)   FF.CATEGORIES   = saved.categories;
     if (saved.goals)        FF.GOALS        = saved.goals;
+    if (saved.faq)          FF.FAQ          = saved.faq;
+    if (saved.contact)      FF.CONTACT      = Object.assign({}, FF.CONTACT, saved.contact);
+    if (typeof saved.freeShip === "number") FF.FREE_SHIP = saved.freeShip;
   } catch (e) {}
+  // Deriva el link de WhatsApp desde el número guardado
+  if (FF.CONTACT && FF.CONTACT.whatsapp) {
+    const digits = String(FF.CONTACT.whatsapp).replace(/[^0-9]/g, "");
+    if (digits) FF.CONTACT.whatsappLink = "https://wa.me/" + digits;
+  }
 })();

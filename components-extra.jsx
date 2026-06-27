@@ -1,3 +1,4 @@
+import React from "react";
 /* FITFUEL — extras: bundles, testimonios, blog, carrito, footer */
 
 function Bundles({ onAddBundle, compact = false }) {
@@ -14,11 +15,13 @@ function Bundles({ onAddBundle, compact = false }) {
         </div>
         <div className="bgrid">
           {list.map((b) => {
-            const save = Math.round((1 - b.price / b.value) * 100);
+            const value = FF.bundleValue(b);
+            const save = value > b.price ? Math.round((1 - b.price / value) * 100) : 0;
             const color = `oklch(0.72 0.17 ${b.hue})`;
             return (
               <article className="bcard" key={b.id} style={{ "--ph-color": color }}>
                 <div className="bcard-glow" />
+                <a className="bcard-link" href={"#/pack/" + b.id} aria-label={"Ver " + b.name} />
                 <span className="save-tag" style={{ position: "relative" }}>AHORRA {save}%</span>
                 <h3>{b.name}</h3>
                 <p className="tagline">{b.tagline}</p>
@@ -27,10 +30,11 @@ function Bundles({ onAddBundle, compact = false }) {
                     <li key={i}><span className="tick"><Icon name="check" size={16} stroke={3} /></span>{it}</li>
                   ))}
                 </ul>
+                <a className="bcard-see" href={"#/pack/" + b.id}>Ver productos del pack <Icon name="arrow" size={15} /></a>
                 <div className="bcard-foot">
                   <div className="price">
                     <b>{money(b.price)}</b>
-                    <s>{money(b.value)}</s>
+                    {value > b.price && <s>{money(value)}</s>}
                   </div>
                   <button className="btn btn-primary btn-sm" onClick={() => onAddBundle(b)}>
                     Añadir pack
@@ -68,7 +72,7 @@ function Testimonials({ compact = false }) {
               </div>
               <p className="quote">"{t.quote}"</p>
               <div className="who">
-                <Avatar name={t.name} hue={t.hue} />
+                <Avatar name={t.name} hue={t.hue} image={t.avatar} />
                 <div><b>{t.name}</b><span>{t.tag}</span></div>
               </div>
             </article>
@@ -96,7 +100,7 @@ function Blog({ compact = false }) {
         <div className="blog-grid">
           {FF.BLOG.map((b) => (
             <a className="bl" key={b.id} href={"#/blog/" + b.id}>
-              <div className="bl-vis"><Ph label="imagen artículo" hue={b.hue} /></div>
+              <div className="bl-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
               <div className="bl-body">
                 <span className="bl-tag">{b.cat}</span>
                 <h4>{b.title}</h4>
@@ -138,7 +142,7 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
             <div className="drawer-body">
               {items.map((it) => (
                 <div className="citem" key={it.id}>
-                  <a className="citem-vis" href={"#/producto/" + it.id} onClick={onClose}><Ph label="" hue={it.hue} tub={true} /></a>
+                  <a className="citem-vis" href={"#/producto/" + it.id} onClick={onClose}><ProdImg image={it.image} label="" hue={it.hue} tub={true} /></a>
                   <div className="citem-main">
                     <b>{it.name}</b>
                     <span>{it.flavor}</span>

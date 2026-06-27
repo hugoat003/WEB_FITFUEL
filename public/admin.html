@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FITFUEL — Admin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23a3e635'/%3E%3Ctext x='16' y='23' font-family='Arial,sans-serif' font-size='20' font-weight='900' text-anchor='middle' fill='%231a2e05'%3EF%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
@@ -176,6 +177,21 @@ input[type=range]{width:100%;accent-color:#a3e635;margin:4px 0}
 /* ── Color preview circle ── */
 .color-dot{width:16px;height:16px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.1);vertical-align:middle;margin-right:4px}
 
+/* ── Thumbnails ── */
+.thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none;border:1px solid var(--border)}
+.thumb-ph{display:inline-block}
+
+/* ── Image field ── */
+.img-field{border:1px dashed var(--border);border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--surface-2)}
+.img-preview{max-width:100%;max-height:150px;border-radius:8px;border:1px solid var(--border);object-fit:cover}
+.img-actions{display:flex;gap:8px;flex-wrap:wrap}
+.img-upload{cursor:pointer}
+.img-hint{font-size:12px;color:var(--dim);margin:0}
+
+/* ── FAQ editor ── */
+.faq-edit{border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;flex-direction:column;background:var(--surface-2)}
+.faq-edit .faq-a{min-height:60px}
+
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
 @keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 </style>
@@ -277,6 +293,34 @@ input[type=range]{width:100%;accent-color:#a3e635;margin:4px 0}
         </div>
 
         <div class="settings-card">
+          <h3>Contacto y tienda</h3>
+          <div class="fg2">
+            <div class="fg"><label class="lbl">Teléfono</label><input type="text" id="c-phone" placeholder="+502 0000 0000" /></div>
+            <div class="fg"><label class="lbl">WhatsApp (recibe pedidos)</label><input type="text" id="c-whatsapp" placeholder="+502 0000 0000" /></div>
+          </div>
+          <div class="fg2" style="margin-top:12px">
+            <div class="fg"><label class="lbl">Correo</label><input type="text" id="c-email" placeholder="hola@fitfuel.gt" /></div>
+            <div class="fg"><label class="lbl">Ciudad</label><input type="text" id="c-city" placeholder="Ciudad de Guatemala, Guatemala" /></div>
+          </div>
+          <div class="fg" style="margin-top:12px"><label class="lbl">Dirección</label><input type="text" id="c-address" placeholder="13 Calle 2-60, Zona 10, Ciudad de Guatemala" /></div>
+          <div class="fg2" style="margin-top:12px">
+            <div class="fg"><label class="lbl">Horario</label><input type="text" id="c-hours" placeholder="Lun a Vie 8:00–18:00" /></div>
+            <div class="fg"><label class="lbl">Envío gratis desde (Q)</label><input type="number" id="c-freeship" min="0" step="1" placeholder="400" /></div>
+          </div>
+          <p style="font-size:12px;color:var(--dim);margin-top:8px">El número de WhatsApp es a donde llegan los pedidos de la tienda y las reseñas.</p>
+          <button class="btn btn-accent" style="margin-top:14px" id="btn-save-contact">Guardar contacto</button>
+        </div>
+
+        <div class="settings-card">
+          <h3>Preguntas frecuentes (FAQ)</h3>
+          <div id="faq-rows" style="display:flex;flex-direction:column;gap:12px"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-ghost" id="btn-add-faq">+ Añadir pregunta</button>
+            <button class="btn btn-accent" id="btn-save-faq">Guardar FAQ</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
           <h3>Categorías de productos</h3>
           <div class="table-wrap">
             <table>
@@ -314,28 +358,38 @@ input[type=range]{width:100%;accent-color:#a3e635;margin:4px 0}
 
 <div class="toasts" id="toasts"></div>
 
-<script src="data.js"></script>
+<script src="data.js?v=5"></script>
 <script>
 // ── State ──────────────────────────────────────────────────
-let D = { products:[], bundles:[], blog:[], testimonials:[], stats:[], categories:[], goals:[] };
+let D = { products:[], bundles:[], blog:[], testimonials:[], stats:[], categories:[], goals:[], faq:[], contact:{}, freeShip:400 };
 let curTab = 'productos';
 let editType = null;
 let editIdx = null; // for testimonials (no id)
 let editId = null;  // for id-based items
+let imgBuffers = { product:null, blog:null, testim:null }; // imágenes en edición (data URL)
 
 // ── Load / Save ────────────────────────────────────────────
+function clone(x) { return JSON.parse(JSON.stringify(x)); }
 function loadData() {
-  D.products     = JSON.parse(JSON.stringify(FF.PRODUCTS));
-  D.bundles      = JSON.parse(JSON.stringify(FF.BUNDLES));
-  D.blog         = JSON.parse(JSON.stringify(FF.BLOG));
-  D.testimonials = JSON.parse(JSON.stringify(FF.TESTIMONIALS));
-  D.stats        = JSON.parse(JSON.stringify(FF.STATS));
-  D.categories   = JSON.parse(JSON.stringify(FF.CATEGORIES));
-  D.goals        = JSON.parse(JSON.stringify(FF.GOALS));
+  D.products     = clone(FF.PRODUCTS);
+  D.bundles      = clone(FF.BUNDLES);
+  D.blog         = clone(FF.BLOG);
+  D.testimonials = clone(FF.TESTIMONIALS);
+  D.stats        = clone(FF.STATS);
+  D.categories   = clone(FF.CATEGORIES);
+  D.goals        = clone(FF.GOALS);
+  D.faq          = clone(FF.FAQ || []);
+  D.contact      = clone(FF.CONTACT || {});
+  D.freeShip     = typeof FF.FREE_SHIP === 'number' ? FF.FREE_SHIP : 400;
 }
 
 function save() {
-  localStorage.setItem('ff_data', JSON.stringify(D));
+  try {
+    localStorage.setItem('ff_data', JSON.stringify(D));
+  } catch (e) {
+    toast('No se pudo guardar: almacenamiento lleno. Usa imágenes más livianas o menos productos.', true);
+    return;
+  }
   const ind = document.getElementById('save-ind');
   ind.style.display = 'inline-block';
   clearTimeout(ind._t);
@@ -377,7 +431,68 @@ function render() {
 // ── Helpers ────────────────────────────────────────────────
 const esc = s => String(s ?? '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const hueColor = h => `oklch(0.72 0.17 ${h})`;
-const money = n => '€' + Number(n).toFixed(2);
+const money = n => 'Q' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ── Imágenes: redimensiona en el navegador y guarda como data URL ──
+function resizeImage(file, maxDim, quality, cb) {
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    let w = img.width, h = img.height;
+    if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+    else if (h >= w && h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    try { cb(cv.toDataURL('image/jpeg', quality)); }
+    catch (e) { toast('No se pudo procesar la imagen', true); }
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('No se pudo leer la imagen', true); };
+  img.src = url;
+}
+function onPickImage(input, key) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast('Selecciona un archivo de imagen', true); return; }
+  if (file.size > 8 * 1024 * 1024) { toast('Imagen muy grande (máx 8MB)', true); return; }
+  resizeImage(file, 800, 0.82, (dataUrl) => {
+    imgBuffers[key] = dataUrl;
+    const pv = document.getElementById('img-preview-' + key);
+    if (pv) { pv.src = dataUrl; pv.style.display = 'block'; }
+    const rm = document.getElementById('img-remove-' + key);
+    if (rm) rm.style.display = 'inline-flex';
+    toast('Imagen lista');
+  });
+}
+function clearImage(key) {
+  imgBuffers[key] = null;
+  const pv = document.getElementById('img-preview-' + key);
+  if (pv) { pv.src = ''; pv.style.display = 'none'; }
+  const rm = document.getElementById('img-remove-' + key);
+  if (rm) rm.style.display = 'none';
+}
+function imgFieldHTML(key, cur, label, hint) {
+  return `<div class="fg"><label class="lbl">${label}</label>
+    <div class="img-field">
+      <img id="img-preview-${key}" class="img-preview" src="${cur || ''}" style="display:${cur ? 'block' : 'none'}" alt="" />
+      <div class="img-actions">
+        <label class="btn btn-ghost btn-sm img-upload">📷 Subir imagen<input type="file" accept="image/*" onchange="onPickImage(this,'${key}')" hidden /></label>
+        <button type="button" class="btn btn-ghost btn-sm" id="img-remove-${key}" style="display:${cur ? 'inline-flex' : 'none'}" onclick="clearImage('${key}')">Quitar</button>
+      </div>
+      <p class="img-hint">${hint || 'Se optimiza automáticamente. Sin imagen se usa un degradado con el tono elegido.'}</p>
+    </div>
+  </div>`;
+}
+// Valor "por separado" de un pack = suma de precios reales de sus productos
+function bundleValueAdmin(b) {
+  if (b && b.productIds && b.productIds.length) {
+    const sum = b.productIds.reduce((s, id) => {
+      const p = D.products.find(x => x.id === id); return s + (p ? p.price : 0);
+    }, 0);
+    if (sum > 0) return sum;
+  }
+  return b && b.value ? b.value : (b ? b.price : 0);
+}
 
 // ── PRODUCTOS ──────────────────────────────────────────────
 function renderProducts() {
@@ -388,7 +503,9 @@ function renderProducts() {
     return `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <span class="color-dot" style="background:${hueColor(p.hue)}"></span>
+          ${p.image
+            ? `<img class="thumb" src="${esc(p.image)}" alt="" />`
+            : `<span class="thumb thumb-ph" style="background:${hueColor(p.hue)}"></span>`}
           <div><div class="td-main">${esc(p.name)}</div><div class="td-sub">${esc(p.flavor)}</div></div>
         </div>
       </td>
@@ -407,11 +524,13 @@ function renderProducts() {
 function openProduct(id) {
   const p = id ? D.products.find(x => x.id === id) : null;
   editType = 'product'; editId = id || null;
+  imgBuffers.product = p?.image || null;
   document.getElementById('panel-title').textContent = p ? 'Editar producto' : 'Nuevo producto';
   const cats = D.categories.filter(c => c.id !== 'all');
   const goals = D.goals;
   const facts = p ? p.facts : [['',''],['',''],['','']];
   document.getElementById('panel-body').innerHTML = `
+    ${imgFieldHTML('product', p?.image, 'Imagen del producto', 'Foto del bote. Se optimiza automáticamente. Sin imagen se usa un degradado con el tono.')}
     <div class="fg2">
       <div class="fg"><label class="lbl">Nombre</label><input id="f-name" value="${esc(p?.name||'')}" placeholder="Whey Protein" /></div>
       <div class="fg"><label class="lbl">Sabor / Presentación</label><input id="f-flavor" value="${esc(p?.flavor||'')}" placeholder="Vainilla Cremosa" /></div>
@@ -420,8 +539,8 @@ function openProduct(id) {
       <select id="f-cat">${cats.map(c => `<option value="${c.id}"${p?.cat===c.id?' selected':''}>${c.label}</option>`).join('')}</select>
     </div>
     <div class="fg2">
-      <div class="fg"><label class="lbl">Precio (€)</label><input type="number" id="f-price" value="${p?.price||''}" min="0" step="0.1" /></div>
-      <div class="fg"><label class="lbl">Precio anterior (€)</label><input type="number" id="f-oldprice" value="${p?.oldPrice||''}" min="0" step="0.1" placeholder="Dejar vacío si no hay" /></div>
+      <div class="fg"><label class="lbl">Precio (Q)</label><input type="number" id="f-price" value="${p?.price||''}" min="0" step="1" /></div>
+      <div class="fg"><label class="lbl">Precio anterior (Q)</label><input type="number" id="f-oldprice" value="${p?.oldPrice||''}" min="0" step="1" placeholder="Dejar vacío si no hay" /></div>
     </div>
     <div class="fg2">
       <div class="fg"><label class="lbl">Rating (0–5)</label><input type="number" id="f-rating" value="${p?.rating??4.5}" min="0" max="5" step="0.1" /></div>
@@ -485,6 +604,7 @@ function saveProduct() {
     blurb: document.getElementById('f-blurb').value.trim(),
     goals: [...document.querySelectorAll('input[name="goal"]:checked')].map(x => x.value),
     facts,
+    image: imgBuffers.product || null,
   };
   if (editId) D.products = D.products.map(p => p.id === editId ? product : p);
   else D.products.push(product);
@@ -496,15 +616,16 @@ function renderPacks() {
   const tb = document.getElementById('packs-tbody');
   if (!D.bundles.length) { tb.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">🎁</div>No hay packs.</div></td></tr>`; return; }
   tb.innerHTML = D.bundles.map(b => {
-    const pct = b.value > 0 ? Math.round((1 - b.price/b.value)*100) : 0;
+    const value = bundleValueAdmin(b);
+    const pct = value > b.price ? Math.round((1 - b.price/value)*100) : 0;
     return `<tr>
       <td>
         <div class="td-main">${esc(b.name)}</div>
-        <div class="td-sub">${b.items.join(' · ')}</div>
+        <div class="td-sub">${esc((b.items||[]).join(' · '))}</div>
       </td>
       <td>${esc(b.tagline)}</td>
       <td style="font-family:var(--font-mono);font-weight:700">${money(b.price)}</td>
-      <td><span class="badge badge-green">-${pct}%</span></td>
+      <td>${pct > 0 ? `<span class="badge badge-green">-${pct}%</span>` : '<span class="badge badge-gray">—</span>'}</td>
       <td><div class="actions">
         <button class="btn btn-sm btn-ghost" onclick="openPack('${esc(b.id)}')">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="delById('bundles','${esc(b.id)}')">Eliminar</button>
@@ -517,7 +638,7 @@ function openPack(id) {
   const b = id ? D.bundles.find(x => x.id === id) : null;
   editType = 'pack'; editId = id || null;
   document.getElementById('panel-title').textContent = b ? 'Editar pack' : 'Nuevo pack';
-  const items = b ? b.items : ['','',''];
+  const selected = (b && b.productIds) ? b.productIds.slice() : [];
   document.getElementById('panel-body').innerHTML = `
     <div class="fg2">
       <div class="fg"><label class="lbl">Nombre del pack</label><input id="f-bname" value="${esc(b?.name||'')}" placeholder="Pack VOLUMEN" /></div>
@@ -527,39 +648,47 @@ function openPack(id) {
       </div>
     </div>
     <div class="fg"><label class="lbl">Tagline</label><input id="f-btagline" value="${esc(b?.tagline||'')}" placeholder="Gana masa sin pensar" /></div>
-    <div class="fg2">
-      <div class="fg"><label class="lbl">Precio pack (€)</label><input type="number" id="f-bprice" value="${b?.price||''}" min="0" step="0.1" /></div>
-      <div class="fg"><label class="lbl">Precio original (€)</label><input type="number" id="f-bvalue" value="${b?.value||''}" min="0" step="0.1" /></div>
-    </div>
+    <div class="fg"><label class="lbl">Descripción (página del pack)</label><textarea id="f-bdesc" placeholder="Texto que aparece en la página del pack">${esc(b?.desc||'')}</textarea></div>
+    <div class="fg"><label class="lbl">Precio del pack (Q)</label><input type="number" id="f-bprice" value="${b?.price||''}" min="0" step="1" oninput="updatePackCalc()" /></div>
     <div class="fg"><label class="lbl">Objetivo principal</label>
       <select id="f-bgoal">${D.goals.map(g => `<option value="${g.id}"${b?.goal===g.id?' selected':''}>${g.label}</option>`).join('')}</select>
     </div>
     <div class="fg"><label class="lbl">Productos incluidos</label>
-      <div class="items-list" id="bundle-items">
-        ${items.map(it => `<div class="item-row"><input class="bitem" value="${esc(it)}" placeholder="Nombre del producto" /><button onclick="this.parentElement.remove()" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:0 8px;height:36px;cursor:pointer">✕</button></div>`).join('')}
+      <div class="checks" id="bundle-prods">
+        ${D.products.map(p => `<label class="chk-lbl"><input type="checkbox" class="bprod" value="${esc(p.id)}"${selected.includes(p.id)?' checked':''} onchange="updatePackCalc()" />${esc(p.name)} · ${esc(p.flavor)}</label>`).join('') || '<span style="color:var(--dim);font-size:13px">No hay productos. Crea productos primero.</span>'}
       </div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addBItem()">+ Añadir producto</button>
+      <p class="img-hint" id="pack-calc" style="margin-top:8px"></p>
     </div>
   `;
   openPanel();
+  updatePackCalc();
 }
 
-function addBItem() {
-  const d = document.createElement('div'); d.className = 'item-row';
-  d.innerHTML = `<input class="bitem" placeholder="Nombre del producto" /><button onclick="this.parentElement.remove()" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:0 8px;height:36px;cursor:pointer">✕</button>`;
-  document.getElementById('bundle-items').appendChild(d);
+function updatePackCalc() {
+  const ids = [...document.querySelectorAll('.bprod:checked')].map(x => x.value);
+  const value = ids.reduce((s, id) => { const p = D.products.find(x => x.id === id); return s + (p ? p.price : 0); }, 0);
+  const price = parseFloat(document.getElementById('f-bprice').value) || 0;
+  const el = document.getElementById('pack-calc');
+  if (!el) return;
+  if (!ids.length) { el.textContent = 'Selecciona los productos del pack.'; return; }
+  const pct = value > price && price > 0 ? Math.round((1 - price / value) * 100) : 0;
+  el.innerHTML = `Valor por separado: <b>${money(value)}</b> · ` +
+    (price > 0 ? `ahorro: <b>${money(Math.max(0, value - price))}</b> (${pct}%)` : 'define el precio del pack');
 }
 
 function savePack() {
   const name = document.getElementById('f-bname').value.trim();
   if (!name) { toast('El nombre es obligatorio', true); return; }
+  const ids = [...document.querySelectorAll('.bprod:checked')].map(x => x.value);
+  const items = ids.map(id => { const p = D.products.find(x => x.id === id); return p ? p.name : id; });
   const pack = {
     id: editId || ('pack-' + Date.now()),
     name,
     tagline: document.getElementById('f-btagline').value.trim(),
-    items: [...document.querySelectorAll('.bitem')].map(x => x.value.trim()).filter(Boolean),
+    desc: document.getElementById('f-bdesc').value.trim(),
+    productIds: ids,
+    items,
     price: parseFloat(document.getElementById('f-bprice').value) || 0,
-    value: parseFloat(document.getElementById('f-bvalue').value) || 0,
     goal: document.getElementById('f-bgoal').value,
     hue: parseInt(document.getElementById('f-bhue').value),
   };
@@ -586,13 +715,18 @@ function renderBlog() {
 function openBlog(id) {
   const b = id ? D.blog.find(x => x.id === id) : null;
   editType = 'blog'; editId = id || null;
+  imgBuffers.blog = b?.image || null;
   document.getElementById('panel-title').textContent = b ? 'Editar artículo' : 'Nuevo artículo';
+  const body = b && Array.isArray(b.body) ? b.body.join('\n\n') : (b?.body || '');
   document.getElementById('panel-body').innerHTML = `
+    ${imgFieldHTML('blog', b?.image, 'Imagen de portada', 'Imagen del artículo (formato horizontal). Sin imagen se usa un degradado.')}
     <div class="fg"><label class="lbl">Título</label><input id="f-btitle" value="${esc(b?.title||'')}" placeholder="Creatina: cuánta tomar..." /></div>
     <div class="fg2">
       <div class="fg"><label class="lbl">Categoría</label><input id="f-bcat" value="${esc(b?.cat||'')}" placeholder="Guía, Nutrición, Entreno…" /></div>
       <div class="fg"><label class="lbl">Tiempo de lectura</label><input id="f-bread" value="${esc(b?.read||'')}" placeholder="5 min" /></div>
     </div>
+    <div class="fg"><label class="lbl">Resumen (1–2 líneas)</label><textarea id="f-bexcerpt" placeholder="Aparece en la tarjeta del blog">${esc(b?.excerpt||'')}</textarea></div>
+    <div class="fg"><label class="lbl">Contenido del artículo</label><textarea id="f-bbody" style="min-height:160px" placeholder="Escribe el artículo. Separa los párrafos con una línea en blanco.">${esc(body)}</textarea></div>
     <div class="fg"><label class="lbl">Tono de color</label>
       <input type="range" id="f-bh" min="0" max="360" value="${b?.hue??200}" oninput="document.getElementById('hue-bar').style.background=\`oklch(0.72 0.17 \${this.value})\`" />
       <div class="hue-bar" id="hue-bar" style="background:${hueColor(b?.hue??200)}"></div>
@@ -604,7 +738,17 @@ function openBlog(id) {
 function saveBlog() {
   const title = document.getElementById('f-btitle').value.trim();
   if (!title) { toast('El título es obligatorio', true); return; }
-  const art = { id: editId || ('b' + Date.now()), title, cat: document.getElementById('f-bcat').value.trim(), read: document.getElementById('f-bread').value.trim(), hue: parseInt(document.getElementById('f-bh').value) };
+  const bodyText = document.getElementById('f-bbody').value.trim();
+  const body = bodyText ? bodyText.split(/\n\s*\n/).map(s => s.trim()).filter(Boolean) : [];
+  const art = {
+    id: editId || ('b' + Date.now()), title,
+    cat: document.getElementById('f-bcat').value.trim(),
+    read: document.getElementById('f-bread').value.trim(),
+    excerpt: document.getElementById('f-bexcerpt').value.trim(),
+    body,
+    hue: parseInt(document.getElementById('f-bh').value),
+    image: imgBuffers.blog || null,
+  };
   if (editId) D.blog = D.blog.map(b => b.id === editId ? art : b);
   else D.blog.push(art);
   save(); closePanel(); renderBlog();
@@ -628,10 +772,12 @@ function renderTestimonios() {
 function openTestim(idx) {
   const t = idx >= 0 ? D.testimonials[idx] : null;
   editType = 'testim'; editIdx = idx;
+  imgBuffers.testim = t?.avatar || null;
   document.getElementById('panel-title').textContent = t ? 'Editar testimonio' : 'Nuevo testimonio';
   document.getElementById('panel-body').innerHTML = `
+    ${imgFieldHTML('testim', t?.avatar, 'Foto (opcional)', 'Foto de la persona. Sin foto se muestra su inicial con el tono elegido.')}
     <div class="fg"><label class="lbl">Nombre</label><input id="f-tname" value="${esc(t?.name||'')}" placeholder="María G." /></div>
-    <div class="fg"><label class="lbl">Tag / descripción</label><input id="f-ttag" value="${esc(t?.tag||'')}" placeholder="Entrena 5x semana" /></div>
+    <div class="fg"><label class="lbl">Tag / descripción</label><input id="f-ttag" value="${esc(t?.tag||'')}" placeholder="Entrena 5x semana · Ciudad de Guatemala" /></div>
     <div class="fg"><label class="lbl">Cita</label><textarea id="f-tquote">${esc(t?.quote||'')}</textarea></div>
     <div class="fg"><label class="lbl">Tono de color</label>
       <input type="range" id="f-th" min="0" max="360" value="${t?.hue??120}" oninput="document.getElementById('hue-bar').style.background=\`oklch(0.72 0.17 \${this.value})\`" />
@@ -644,7 +790,7 @@ function openTestim(idx) {
 function saveTestim() {
   const name = document.getElementById('f-tname').value.trim();
   if (!name) { toast('El nombre es obligatorio', true); return; }
-  const t = { name, tag: document.getElementById('f-ttag').value.trim(), quote: document.getElementById('f-tquote').value.trim(), hue: parseInt(document.getElementById('f-th').value) };
+  const t = { name, tag: document.getElementById('f-ttag').value.trim(), quote: document.getElementById('f-tquote').value.trim(), hue: parseInt(document.getElementById('f-th').value), avatar: imgBuffers.testim || null };
   if (editIdx >= 0 && editIdx < D.testimonials.length) D.testimonials[editIdx] = t;
   else D.testimonials.push(t);
   save(); closePanel(); renderTestimonios();
@@ -668,6 +814,61 @@ function renderAjustes() {
   document.getElementById('cats-tbody').innerHTML = D.categories.map(c =>
     `<tr><td style="font-family:var(--font-mono);font-size:12px">${esc(c.id)}</td><td>${esc(c.label)}</td></tr>`
   ).join('');
+
+  // Contacto
+  const c = D.contact || {};
+  const setv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  setv('c-phone', c.phone); setv('c-whatsapp', c.whatsapp); setv('c-email', c.email);
+  setv('c-city', c.city); setv('c-address', c.address); setv('c-hours', c.hours);
+  setv('c-freeship', D.freeShip);
+
+  renderFaq();
+}
+
+function renderFaq() {
+  const wrap = document.getElementById('faq-rows');
+  if (!wrap) return;
+  wrap.innerHTML = (D.faq || []).map((f, i) => `
+    <div class="faq-edit" data-i="${i}">
+      <div class="fg"><input class="faq-q" value="${esc(f.q)}" placeholder="Pregunta" /></div>
+      <div class="fg" style="margin-top:6px"><textarea class="faq-a" placeholder="Respuesta">${esc(f.a)}</textarea></div>
+      <button class="btn btn-sm btn-danger" style="margin-top:6px;align-self:flex-start" onclick="delFaq(${i})">Eliminar</button>
+    </div>
+  `).join('') || '<p style="color:var(--dim);font-size:13px">Sin preguntas. Añade la primera.</p>';
+}
+
+function readFaqFromDom() {
+  return [...document.querySelectorAll('#faq-rows .faq-edit')].map(row => ({
+    q: row.querySelector('.faq-q').value.trim(),
+    a: row.querySelector('.faq-a').value.trim(),
+  })).filter(f => f.q && f.a);
+}
+
+function delFaq(i) {
+  D.faq = readFaqFromDom();  // conserva ediciones en curso
+  D.faq.splice(i, 1);
+  renderFaq();
+}
+
+function saveContact() {
+  D.contact = Object.assign({}, D.contact, {
+    phone: document.getElementById('c-phone').value.trim(),
+    whatsapp: document.getElementById('c-whatsapp').value.trim(),
+    email: document.getElementById('c-email').value.trim(),
+    city: document.getElementById('c-city').value.trim(),
+    address: document.getElementById('c-address').value.trim(),
+    hours: document.getElementById('c-hours').value.trim(),
+  });
+  const digits = D.contact.whatsapp.replace(/[^0-9]/g, '');
+  D.contact.whatsappLink = digits ? 'https://wa.me/' + digits : '';
+  const fs = parseInt(document.getElementById('c-freeship').value);
+  D.freeShip = isNaN(fs) ? D.freeShip : fs;
+  save();
+}
+
+function saveFaq() {
+  D.faq = readFaqFromDom();
+  save(); renderFaq();
 }
 
 function delStat(i) { D.stats.splice(i, 1); save(); renderAjustes(); }
@@ -717,6 +918,15 @@ document.getElementById('btn-add').onclick = () => {
 // Stats
 document.getElementById('btn-add-stat').onclick = addStat;
 document.getElementById('new-stat').onkeydown = e => { if (e.key === 'Enter') addStat(); };
+
+// Contacto + FAQ
+document.getElementById('btn-save-contact').onclick = saveContact;
+document.getElementById('btn-save-faq').onclick = saveFaq;
+document.getElementById('btn-add-faq').onclick = () => {
+  D.faq = readFaqFromDom();
+  D.faq.push({ q: '', a: '' });
+  renderFaq();
+};
 
 // Nav
 document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
