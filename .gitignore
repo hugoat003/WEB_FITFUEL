@@ -1,0 +1,13 @@
+# OS / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.vscode/
+
+# Dependencias (no se usan: la app corre con CDN)
+node_modules/
+
+# Temporales
+*.log
+scratchpad/
