@@ -117,7 +117,9 @@ function useTweaks(defaults) {
     const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
       ? keyOrEdits : { [keyOrEdits]: val };
     setValues((prev) => ({ ...prev, ...edits }));
-    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    }
     window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
   }, []);
   return [values, setTweak];
@@ -162,13 +164,17 @@ function TweaksPanel({ title = 'Tweaks', children }) {
       else if (t === '__deactivate_edit_mode') setOpen(false);
     };
     window.addEventListener('message', onMsg);
-    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    }
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
   const dismiss = () => {
     setOpen(false);
-    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+    }
   };
 
   const onDragStart = (e) => {

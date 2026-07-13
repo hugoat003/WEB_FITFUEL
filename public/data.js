@@ -4,6 +4,12 @@ window.FF = window.FF || {};
 // Umbral de envío gratis (Quetzales)
 FF.FREE_SHIP = 400;
 
+// Costo de envío estándar (Quetzales) — editable desde el admin
+FF.SHIP_COST = 35;
+
+// Umbral de "Últimas unidades" (avisa escasez sin mostrar la cantidad exacta)
+FF.LOW_STOCK = 5;
+
 // Categorías
 FF.CATEGORIES = [
   { id: "all", label: "Todo" },
@@ -24,90 +30,70 @@ FF.GOALS = [
 
 // Productos (precios en Quetzales GTQ)
 FF.PRODUCTS = [
-  {
-    id: "whey-vainilla", name: "Whey Protein", flavor: "Vainilla Cremosa",
-    cat: "proteina", price: 339, oldPrice: 425, rating: 4.9, reviews: 1284,
-    badge: "BESTSELLER", goals: ["musculo", "recovery"], hue: 92,
+  { id: "whey-vainilla", name: "Whey Protein", flavor: "Vainilla",
+    cat: "proteina", price: 339, oldPrice: 425, rating: 4.9, reviews: 2264,
+    badge: "BESTSELLER", goals: ["musculo", "recovery"], hue: 92, stock: 48,
     blurb: "24g de proteína de suero por servicio. Se mezcla sin grumos.",
     facts: [["Proteína", "24g"], ["BCAAs", "5.5g"], ["Servicios", "30"]],
-  },
-  {
-    id: "whey-choco", name: "Whey Protein", flavor: "Chocolate Belga",
-    cat: "proteina", price: 339, oldPrice: 425, rating: 4.8, reviews: 980,
-    badge: null, goals: ["musculo", "recovery"], hue: 40,
-    blurb: "El clásico chocolate, ahora más cremoso. 24g de proteína limpia.",
-    facts: [["Proteína", "24g"], ["BCAAs", "5.5g"], ["Servicios", "30"]],
-  },
-  {
-    id: "iso-fresa", name: "Iso Whey Zero", flavor: "Fresa",
+    variants: [
+      { flavor: "Vainilla",  size: "907 g · 2 lb",  price: 339, images: [], facts: [["Proteína", "24g"], ["BCAAs", "5.5g"], ["Servicios", "30"]] },
+      { flavor: "Vainilla",  size: "1.8 kg · 4 lb", price: 589, images: [], facts: [["Proteína", "24g"], ["BCAAs", "5.5g"], ["Servicios", "60"]] },
+      { flavor: "Chocolate", size: "907 g · 2 lb",  price: 339, images: [], facts: [["Proteína", "24g"], ["BCAAs", "5.4g"], ["Servicios", "30"]] },
+      { flavor: "Chocolate", size: "1.8 kg · 4 lb", price: 589, images: [], facts: [["Proteína", "24g"], ["BCAAs", "5.4g"], ["Servicios", "60"]] },
+    ] },
+  { id: "iso-fresa", name: "Iso Whey Zero", flavor: "Fresa",
     cat: "proteina", price: 409, oldPrice: null, rating: 4.7, reviews: 612,
-    badge: "0 AZÚCAR", goals: ["definir", "musculo"], hue: 12,
+    badge: "0 AZÚCAR", goals: ["definir", "musculo"], hue: 12, stock: 22,
     blurb: "Aislado de suero ultrafiltrado. 27g de proteína, 0g de azúcar.",
     facts: [["Proteína", "27g"], ["Azúcar", "0g"], ["Servicios", "28"]],
-  },
-  {
-    id: "vegana", name: "Plant Protein", flavor: "Cacao",
+    sizes: [{ label: "900 g", price: 409 }, { label: "1.8 kg", price: 729 }] },
+  { id: "vegana", name: "Plant Protein", flavor: "Cacao",
     cat: "proteina", price: 365, oldPrice: null, rating: 4.6, reviews: 340,
-    badge: "VEGANA", goals: ["definir", "recovery"], hue: 150,
+    badge: "VEGANA", goals: ["definir", "recovery"], hue: 150, stock: 18,
     blurb: "Mezcla de guisante y arroz. Perfil completo de aminoácidos, 100% vegetal.",
-    facts: [["Proteína", "22g"], ["Fibra", "4g"], ["Servicios", "30"]],
-  },
-  {
-    id: "crea-mono", name: "Creatina Monohidrato", flavor: "Sin sabor · 300g",
+    facts: [["Proteína", "22g"], ["Fibra", "4g"], ["Servicios", "30"]] },
+  { id: "crea-mono", name: "Creatina Monohidrato", flavor: "Sin sabor · 300g",
     cat: "creatina", price: 199, oldPrice: 255, rating: 5.0, reviews: 2150,
-    badge: "TOP VENTAS", goals: ["musculo", "energia"], hue: 200,
+    badge: "TOP VENTAS", goals: ["musculo", "energia"], hue: 200, stock: 75,
     blurb: "Creapure® micronizada. El suplemento más estudiado del mundo.",
     facts: [["Por dosis", "5g"], ["Servicios", "60"], ["Pureza", "99.9%"]],
-  },
-  {
-    id: "crea-hcl", name: "Creatina HCL", flavor: "Limón · 180g",
+    sizes: [{ label: "300 g · 60 serv", price: 199 }, { label: "500 g · 100 serv", price: 299 }] },
+  { id: "crea-hcl", name: "Creatina HCL", flavor: "Limón · 180g",
     cat: "creatina", price: 255, oldPrice: null, rating: 4.7, reviews: 410,
-    badge: null, goals: ["musculo", "energia"], hue: 110,
+    badge: null, goals: ["musculo", "energia"], hue: 110, stock: 30,
     blurb: "Mayor solubilidad, sin retención. Para quien busca dosis bajas.",
-    facts: [["Por dosis", "2g"], ["Servicios", "90"], ["Solubilidad", "Alta"]],
-  },
-  {
-    id: "ignite", name: "Pre-Entreno IGNITE", flavor: "Sandía Helada",
+    facts: [["Por dosis", "2g"], ["Servicios", "90"], ["Solubilidad", "Alta"]] },
+  { id: "ignite", name: "Pre-Entreno IGNITE", flavor: "Sandía Helada",
     cat: "pre", price: 295, oldPrice: 339, rating: 4.8, reviews: 870,
-    badge: "INTENSO", goals: ["energia", "definir"], hue: 350,
+    badge: "INTENSO", goals: ["energia", "definir"], hue: 350, stock: 40,
     blurb: "300mg cafeína, citrulina y beta-alanina. Foco y bombeo brutal.",
     facts: [["Cafeína", "300mg"], ["Citrulina", "6g"], ["Servicios", "25"]],
-  },
-  {
-    id: "pump-zero", name: "Pre-Entreno PUMP", flavor: "Mojito · Sin estimulantes",
+    sizes: [{ label: "300 g · 25 serv", price: 295 }, { label: "600 g · 50 serv", price: 519 }] },
+  { id: "pump-zero", name: "Pre-Entreno PUMP", flavor: "Mojito · Sin estimulantes",
     cat: "pre", price: 279, oldPrice: null, rating: 4.5, reviews: 295,
-    badge: "0 CAFEÍNA", goals: ["energia", "musculo"], hue: 160,
+    badge: "0 CAFEÍNA", goals: ["energia", "musculo"], hue: 160, stock: 25,
     blurb: "Bombeo sin nervios. Ideal para entrenar de noche.",
-    facts: [["Citrulina", "8g"], ["Glicerol", "3g"], ["Servicios", "25"]],
-  },
-  {
-    id: "bcaa", name: "BCAA 2:1:1", flavor: "Mango · Maracuyá",
+    facts: [["Citrulina", "8g"], ["Glicerol", "3g"], ["Servicios", "25"]] },
+  { id: "bcaa", name: "BCAA 2:1:1", flavor: "Mango · Maracuyá",
     cat: "amino", price: 235, oldPrice: null, rating: 4.6, reviews: 520,
-    badge: null, goals: ["recovery", "definir"], hue: 60,
+    badge: null, goals: ["recovery", "definir"], hue: 60, stock: 33,
     blurb: "Aminoácidos ramificados para reducir el catabolismo intra-entreno.",
-    facts: [["BCAA", "7g"], ["Electrolitos", "Sí"], ["Servicios", "30"]],
-  },
-  {
-    id: "glutamina", name: "L-Glutamina", flavor: "Sin sabor · 250g",
+    facts: [["BCAA", "7g"], ["Electrolitos", "Sí"], ["Servicios", "30"]] },
+  { id: "glutamina", name: "L-Glutamina", flavor: "Sin sabor · 250g",
     cat: "amino", price: 195, oldPrice: null, rating: 4.4, reviews: 180,
-    badge: null, goals: ["recovery"], hue: 220,
+    badge: null, goals: ["recovery"], hue: 220, stock: 20,
     blurb: "Apoya la recuperación muscular y la salud intestinal.",
-    facts: [["Por dosis", "5g"], ["Servicios", "50"], ["Pureza", "99%"]],
-  },
-  {
-    id: "omega", name: "Omega-3 Ultra", flavor: "90 cápsulas",
+    facts: [["Por dosis", "5g"], ["Servicios", "50"], ["Pureza", "99%"]] },
+  { id: "omega", name: "Omega-3 Ultra", flavor: "90 cápsulas",
     cat: "salud", price: 169, oldPrice: 210, rating: 4.8, reviews: 740,
-    badge: null, goals: ["recovery", "definir"], hue: 30,
+    badge: null, goals: ["recovery", "definir"], hue: 30, stock: 60,
     blurb: "EPA y DHA de alta concentración. Salud cardiovascular y articular.",
-    facts: [["EPA+DHA", "800mg"], ["Cápsulas", "90"], ["Origen", "Pescado"]],
-  },
-  {
-    id: "zma", name: "ZMA Recovery", flavor: "120 cápsulas",
+    facts: [["EPA+DHA", "800mg"], ["Cápsulas", "90"], ["Origen", "Pescado"]] },
+  { id: "zma", name: "ZMA Recovery", flavor: "120 cápsulas",
     cat: "salud", price: 185, oldPrice: null, rating: 4.5, reviews: 260,
-    badge: "DESCANSO", goals: ["recovery", "musculo"], hue: 270,
+    badge: "DESCANSO", goals: ["recovery", "musculo"], hue: 270, stock: 15,
     blurb: "Zinc, magnesio y B6 para un sueño profundo y mejor recuperación.",
-    facts: [["Zinc", "30mg"], ["Magnesio", "450mg"], ["Cápsulas", "120"]],
-  },
+    facts: [["Zinc", "30mg"], ["Magnesio", "450mg"], ["Cápsulas", "120"]] },
 ];
 
 // Bundles / packs (precios en Quetzales GTQ)
@@ -143,6 +129,97 @@ FF.bundleValue = function (b) {
     if (sum > 0) return sum;
   }
   return b && b.value ? b.value : b.price;
+};
+
+// ── Presentaciones (variantes SKU) ──────────────────────────────────────────
+// Cada presentación: { flavor, size, price, images:[], facts:[[k,v]] }
+// Etiqueta única (usada como clave de variante en el carrito):
+FF.variantLabel = function (v) {
+  return [v && v.flavor, v && v.size].filter(Boolean).join(" · ");
+};
+// Devuelve las presentaciones de un producto. Si no tiene `variants`, las
+// construye desde los campos antiguos (flavors / sizes / flavor / price).
+FF.variantsOf = function (p) {
+  if (!p) return [];
+  if (p.variants && p.variants.length) {
+    return p.variants.map((v) => ({
+      flavor: v.flavor || "", size: v.size || "",
+      price: v.price != null ? v.price : p.price,
+      images: (v.images || []).filter(Boolean),
+      facts: v.facts || p.facts || [],
+      stock: v.stock,
+    }));
+  }
+  const flavors = (p.flavors && p.flavors.length) ? p.flavors : [{ label: p.flavor || "", image: p.image }];
+  const sizes = (p.sizes && p.sizes.length) ? p.sizes : null;
+  const out = [];
+  flavors.forEach((fl) => {
+    const imgs = [fl.image || p.image].filter(Boolean);
+    if (sizes) {
+      sizes.forEach((sz) => out.push({
+        flavor: fl.label || "", size: sz.label || "",
+        price: sz.price != null ? sz.price : p.price, images: imgs, facts: p.facts || [],
+      }));
+    } else {
+      out.push({ flavor: fl.label || "", size: "", price: p.price, images: imgs, facts: p.facts || [] });
+    }
+  });
+  return out;
+};
+// Imagen de una variante SIN robar la de otro sabor: usa su imagen; si no tiene,
+// comparte con otra presentación del MISMO sabor; si tampoco hay, devuelve null
+// (para que se muestre el placeholder). `variant` puede ser la variante ya resuelta.
+FF.variantImage = function (p, variant) {
+  if (variant && variant.images && variant.images.length) return variant.images[0];
+  if (variant && p) {
+    const vs = FF.variantsOf(p);
+    const same = vs.find((v) => v.flavor === variant.flavor && v.images && v.images.length);
+    if (same) return same.images[0];
+  }
+  return null;
+};
+// Stock vivo (tabla `stock` de Supabase), cargado al arranque. { 'pid|variante': qty }
+FF.LIVE_STOCK = null;
+FF.SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZHhucHl5YnpwY2pldHhlZHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTAyOTMsImV4cCI6MjA5ODYyNjI5M30.4bRrW810z2C0Yjc6KdqZyQEEQKt_9nFa6vAxHEv75Y8";
+FF.loadStock = async function () {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3500);
+    const r = await fetch("https://dwdxnpyybzpcjetxedyq.supabase.co/rest/v1/stock?select=product_id,variant,qty",
+      { headers: { apikey: FF.SB_ANON, Authorization: "Bearer " + FF.SB_ANON }, cache: "no-cache", signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) return;
+    const rows = await r.json();
+    const m = {};
+    rows.forEach((x) => { m[x.product_id + "|" + (x.variant || "")] = x.qty; });
+    FF.LIVE_STOCK = m;
+  } catch (e) {}
+};
+// Stock de una variante: prioriza el stock vivo de Supabase; si no, el propio de la variante;
+// si no (legacy), el del producto. null = sin límite.
+FF.variantStock = function (p, variant) {
+  if (FF.LIVE_STOCK && p) {
+    const key = p.id + "|" + (FF.variantLabel(variant) || "");
+    if (key in FF.LIVE_STOCK) return FF.LIVE_STOCK[key];
+  }
+  if (variant && variant.stock !== undefined) return variant.stock;
+  return p && p.stock != null ? p.stock : null;
+};
+// Stock total de un producto (suma de sus presentaciones); null si alguna es ilimitada.
+FF.productStock = function (p) {
+  const vs = FF.variantsOf(p);
+  if (!vs.length) return p && p.stock != null ? p.stock : null;
+  let sum = 0, anyNull = false;
+  vs.forEach((v) => { const s = FF.variantStock(p, v); if (s == null) anyNull = true; else sum += s; });
+  return anyNull ? null : sum;
+};
+// Busca la presentación que coincide con un sabor + tamaño (con fallbacks).
+FF.findVariant = function (p, flavor, size) {
+  const vs = FF.variantsOf(p);
+  return vs.find((v) => v.flavor === flavor && v.size === size)
+      || vs.find((v) => v.flavor === flavor)
+      || vs.find((v) => v.size === size)
+      || vs[0] || null;
 };
 
 // Testimonios (Guatemala)
@@ -213,25 +290,43 @@ FF.FAQ = [
   { q: "¿Cómo sé qué suplemento necesito?", a: "Usa nuestro selector de objetivos: eliges tu meta (ganar músculo, definir, energía o recuperación) y te mostramos exactamente lo que necesitas." },
 ];
 
-// Load custom data saved from admin panel
-(function () {
-  try {
-    const saved = JSON.parse(localStorage.getItem('ff_data'));
-    if (!saved) return;
-    if (saved.products)     FF.PRODUCTS     = saved.products;
-    if (saved.bundles)      FF.BUNDLES      = saved.bundles;
-    if (saved.blog)         FF.BLOG         = saved.blog;
-    if (saved.testimonials) FF.TESTIMONIALS = saved.testimonials;
-    if (saved.stats)        FF.STATS        = saved.stats;
-    if (saved.categories)   FF.CATEGORIES   = saved.categories;
-    if (saved.goals)        FF.GOALS        = saved.goals;
-    if (saved.faq)          FF.FAQ          = saved.faq;
-    if (saved.contact)      FF.CONTACT      = Object.assign({}, FF.CONTACT, saved.contact);
-    if (typeof saved.freeShip === "number") FF.FREE_SHIP = saved.freeShip;
-  } catch (e) {}
-  // Deriva el link de WhatsApp desde el número guardado
+// URL pública del catálogo publicado (Supabase Storage). El bucket `catalog`
+// debe ser público. Si el archivo aún no existe, la carga remota se ignora.
+FF.PUBLIC_CATALOG_URL =
+  "https://dwdxnpyybzpcjetxedyq.supabase.co/storage/v1/object/public/catalog/data.json";
+
+// Aplica un objeto de datos (de localStorage o del catálogo remoto) sobre FF.*
+FF.applyData = function (saved) {
+  if (!saved) return;
+  if (saved.products)     FF.PRODUCTS     = saved.products;
+  if (saved.bundles)      FF.BUNDLES      = saved.bundles;
+  if (saved.blog)         FF.BLOG         = saved.blog;
+  if (saved.testimonials) FF.TESTIMONIALS = saved.testimonials;
+  if (saved.stats)        FF.STATS        = saved.stats;
+  if (saved.categories)   FF.CATEGORIES   = saved.categories;
+  if (saved.goals)        FF.GOALS        = saved.goals;
+  if (saved.faq)          FF.FAQ          = saved.faq;
+  if (saved.contact)      FF.CONTACT      = Object.assign({}, FF.CONTACT, saved.contact);
+  if (typeof saved.freeShip === "number") FF.FREE_SHIP = saved.freeShip;
+  if (typeof saved.shipCost === "number") FF.SHIP_COST = saved.shipCost;
+  if (typeof saved.lowStock === "number") FF.LOW_STOCK = saved.lowStock;
   if (FF.CONTACT && FF.CONTACT.whatsapp) {
     const digits = String(FF.CONTACT.whatsapp).replace(/[^0-9]/g, "");
     if (digits) FF.CONTACT.whatsappLink = "https://wa.me/" + digits;
   }
-})();
+};
+
+// Carga remota (catálogo publicado). La llama main.jsx ANTES de montar la app,
+// así los visitantes ven el catálogo/ imágenes publicados. Falla en silencio.
+FF.loadRemote = async function () {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3500); // no bloquear el arranque más de 3.5s
+    const res = await fetch(FF.PUBLIC_CATALOG_URL, { cache: "no-cache", signal: ctrl.signal });
+    clearTimeout(t);
+    if (res.ok) FF.applyData(await res.json());
+  } catch (e) {}
+};
+
+// Datos locales (preview del panel admin en este navegador).
+try { FF.applyData(JSON.parse(localStorage.getItem('ff_data'))); } catch (e) {}

@@ -13,3 +13,7 @@ dist/
 # Temporales
 *.log
 scratchpad/
+
+# Herramientas de Claude Code (no son parte del proyecto)
+.claude/
+.impeccable/

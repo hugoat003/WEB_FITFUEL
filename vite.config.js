@@ -11,7 +11,7 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: { main: "FITFUEL.html" },
+      input: { main: "FITFUEL.html", index: "index.html" },
     },
   },
 });

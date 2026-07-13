@@ -8,7 +8,6 @@ function Bundles({ onAddBundle, compact = false }) {
       <div className="ff-wrap">
         <div className="sec-head">
           <div>
-            <span className="eyebrow">Packs con descuento</span>
             <h2 className="display">Combina y ahorra</h2>
             <p>Stacks diseñados por objetivo. Todo lo que necesitas, a mejor precio.</p>
           </div>
@@ -50,20 +49,21 @@ function Bundles({ onAddBundle, compact = false }) {
 }
 
 function Testimonials({ compact = false }) {
+  const published = FF.TESTIMONIALS.filter((t) => t._published);
+  if (published.length === 0) return null;
   return (
     <section className="section" id="reseñas">
       <div className="ff-wrap">
         <div className="sec-head">
           <div>
-            <span className="eyebrow">Lo que dice la comunidad</span>
-            <h2 className="display">Resultados reales</h2>
+            <h2 className="display">Reseñas de clientes</h2>
           </div>
           {compact && (
             <a className="btn btn-ghost" href="#/resenas">Ver todas <Icon name="arrow" size={18} /></a>
           )}
         </div>
         <div className="tgrid">
-          {FF.TESTIMONIALS.map((t, i) => (
+          {published.map((t, i) => (
             <article className="tcard" key={i}>
               <div className="stars">
                 {[...Array(5)].map((_, s) => (
@@ -89,7 +89,6 @@ function Blog({ compact = false }) {
       <div className="ff-wrap">
         <div className="sec-head">
           <div>
-            <span className="eyebrow">Aprende</span>
             <h2 className="display">Consejos sin humo</h2>
             <p>Ciencia aplicada al gimnasio, explicada fácil.</p>
           </div>
@@ -120,10 +119,11 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
   const count = items.reduce((s, it) => s + it.qty, 0);
   const remaining = Math.max(0, FREE_SHIP - total);
   const pct = Math.min(100, (total / FREE_SHIP) * 100);
+  const trapRef = useFocusTrap(open, onClose);
   return (
     <>
       {open && <div className="scrim" onClick={onClose} />}
-      <aside className={"drawer" + (open ? " open" : "")} aria-hidden={!open}>
+      <aside className={"drawer" + (open ? " open" : "")} aria-hidden={!open} ref={trapRef}>
         <div className="drawer-head">
           <h3>Tu carrito {count > 0 && <span style={{ color: "var(--accent)" }}>· {count}</span>}</h3>
           <button className="icon-btn" onClick={onClose} aria-label="Cerrar"><Icon name="x" size={18} /></button>
@@ -141,20 +141,20 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
           <>
             <div className="drawer-body">
               {items.map((it) => (
-                <div className="citem" key={it.id}>
+                <div className="citem" key={it.id + (it.vf || '')}>
                   <a className="citem-vis" href={"#/producto/" + it.id} onClick={onClose}><ProdImg image={it.image} label="" hue={it.hue} tub={true} /></a>
                   <div className="citem-main">
                     <b>{it.name}</b>
                     <span>{it.flavor}</span>
                     <div className="citem-row">
                       <div className="citem-qty">
-                        <button onClick={() => onQty(it.id, -1)}><Icon name="minus" size={14} /></button>
+                        <button onClick={() => onQty(it.id, -1, it.vf)}><Icon name="minus" size={14} /></button>
                         <span>{it.qty}</span>
-                        <button onClick={() => onQty(it.id, 1)}><Icon name="plus" size={14} /></button>
+                        <button onClick={() => onQty(it.id, 1, it.vf)}><Icon name="plus" size={14} /></button>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
                         <b style={{ fontFamily: "var(--font-display)", fontSize: 17 }}>{money(it.price * it.qty)}</b>
-                        <button className="link-x" onClick={() => onRemove(it.id)}>Quitar</button>
+                        <button className="link-x" onClick={() => onRemove(it.id, it.vf)}>Quitar</button>
                       </div>
                     </div>
                   </div>
@@ -169,9 +169,12 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
               </div>
               <div className="ship-bar"><i style={{ width: pct + "%" }} /></div>
               <div className="cart-total" style={{ marginTop: 16 }}>
-                <span style={{ color: "var(--text-dim)" }}>Total</span>
+                <span style={{ color: "var(--text-dim)" }}>Subtotal</span>
                 <b>{money(total)}</b>
               </div>
+              <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "4px 0 0" }}>
+                Envío y descuento se calculan al finalizar.
+              </p>
               <button className="btn btn-primary btn-block btn-lg" onClick={onCheckout}>
                 Finalizar compra <Icon name="arrow" size={18} />
               </button>
@@ -183,13 +186,14 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
   );
 }
 
-function CtaBand({ onShop }) {
+function CtaBand({ onShop, user }) {
   return (
     <section className="ctaband">
       <div className="ff-wrap">
-        <span className="eyebrow">Empieza hoy</span>
         <h2 className="display">No esperes al lunes.</h2>
-        <p>Primer pedido con -20% y envío exprés a toda Guatemala.</p>
+        <p>{user
+          ? "Envío gratis en toda Guatemala y entrega en 24–48h."
+          : "Inicia sesión y obtén 10% de descuento en tu primer pedido."}</p>
         <button className="btn btn-primary btn-lg" onClick={onShop || (() => navigate("/catalogo"))}>Comprar ahora <Icon name="arrow" size={18} /></button>
       </div>
     </section>
@@ -214,7 +218,7 @@ const FOOT_COLS = [
     { label: "Sobre nosotros", to: "/nosotros" },
     { label: "Calidad", to: "/calidad" },
     { label: "Blog", to: "/blog" },
-    { label: "Afiliados", to: "/afiliados" },
+    // { label: "Afiliados", to: "/afiliados" }, // pendiente de activar
   ] },
 ];
 
@@ -226,7 +230,7 @@ function Footer() {
         <div className="foot-grid">
           <div>
             <a className="logo" href="#/" style={{ marginBottom: 14 }}>
-              <span className="logo-mark">F</span>FIT<b style={{ color: "var(--accent)" }}>FUEL</b>
+              <img src="/logo-full.png" alt="FITFUEL" className="logo-png" />
             </a>
             <p style={{ color: "var(--text-dim)", maxWidth: 280, fontSize: 15 }}>
               Suplementos deportivos testados en laboratorio. Sin atajos, sin azúcares ocultos. Hecho para Guatemala.
@@ -234,7 +238,7 @@ function Footer() {
             <div className="foot-contact">
               <a href={"tel:" + (c.phone || "").replace(/\s/g, "")}><Icon name="phone" size={15} /> {c.phone}</a>
               <a href={c.whatsappLink || "#"} target="_blank" rel="noopener"><Icon name="chat" size={15} /> WhatsApp</a>
-              <span><Icon name="pin" size={15} /> {c.city}</span>
+              {/* <span><Icon name="pin" size={15} /> {c.city}</span> */}
             </div>
           </div>
           {FOOT_COLS.map((col) => (
@@ -246,7 +250,7 @@ function Footer() {
         </div>
         <div className="foot-bottom">
           <span>© 2026 FITFUEL Guatemala. Demo de diseño — no es una tienda real.</span>
-          <span>Hecho para rendir 💪</span>
+          <span>Hecho para rendir</span>
         </div>
       </div>
     </footer>

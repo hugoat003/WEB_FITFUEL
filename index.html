@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FITFUEL</title>
+<script>
+  // Redirige a la app principal conservando query params y hash
+  // (el hash trae el token de OAuth: #access_token=... tras login con Google).
+  (function () {
+    var dest = "./FITFUEL.html" + window.location.search + window.location.hash;
+    window.location.replace(dest);
+  })();
+</script>
+</head>
+<body></body>
+</html>

@@ -131,4 +131,45 @@ function Avatar({ name, hue, image }) {
   );
 }
 
-Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseHash, navigate, useRoute, Link });
+// Rate limiter cliente (ventana deslizante en localStorage). Mitiga spam de
+// pedidos, fuerza bruta de códigos e intentos de login desde el mismo navegador.
+function rateLimit(key, max, windowMs) {
+  const now = Date.now();
+  let hits = [];
+  try { hits = JSON.parse(localStorage.getItem(key) || "[]"); } catch { hits = []; }
+  hits = hits.filter((t) => typeof t === "number" && now - t < windowMs);
+  if (hits.length >= max) {
+    return { ok: false, retryMs: windowMs - (now - hits[0]) };
+  }
+  hits.push(now);
+  try { localStorage.setItem(key, JSON.stringify(hits)); } catch {}
+  return { ok: true };
+}
+
+// Focus-trap accesible para modales/drawers: enfoca el primer elemento al abrir,
+// mantiene el Tab dentro, cierra con Escape y restaura el foco previo al cerrar.
+function useFocusTrap(active, onClose) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (!active) return;
+    const node = ref.current;
+    const prev = document.activeElement;
+    const sel = 'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])';
+    const focusables = () => Array.from(node ? node.querySelectorAll(sel) : []).filter((el) => el.offsetParent !== null);
+    (focusables()[0] || node)?.focus?.();
+    const onKey = (e) => {
+      if (e.key === "Escape") { onClose && onClose(); return; }
+      if (e.key !== "Tab") return;
+      const f = focusables();
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); if (prev && prev.focus) prev.focus(); };
+  }, [active]);
+  return ref;
+}
+
+Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseHash, navigate, useRoute, Link, rateLimit, useFocusTrap });

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FITFUEL — Registro de cambios y mejoras</title>
+<link rel="icon" href="logo-mark.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#111827; --dim:#6b7280; --border:#e5e7eb;
+  --green:#16a34a; --green-bg:#f0fdf4; --green-border:#bbf7d0;
+  --red:#dc2626; --red-bg:#fef2f2; --red-border:#fecaca;
+  --blue:#1d4ed8; --blue-bg:#eff6ff; --blue-border:#bfdbfe;
+  --accent:#a3e635; --accent-ink:#1a2e05;
+  --surface:#fff; --bg:#f8fafc;
+  --font:"Hanken Grotesk",system-ui,sans-serif;
+  --font-display:"Archivo",system-ui,sans-serif;
+  --font-mono:"Space Mono",monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--blue);text-decoration:none}
+
+/* ── Page ── */
+.page{max-width:860px;margin:0 auto;padding:48px 32px}
+@media(max-width:600px){.page{padding:28px 16px}}
+
+/* ── Header ── */
+.doc-hd{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;border-radius:16px;padding:40px 44px;margin-bottom:40px;position:relative;overflow:hidden}
+.doc-hd::after{content:'F';position:absolute;right:32px;bottom:-12px;font-family:var(--font-display);font-size:180px;font-weight:900;color:rgba(163,230,53,.08);line-height:1;pointer-events:none}
+.doc-logo{font-family:var(--font-display);font-size:26px;font-weight:900;letter-spacing:-.04em;text-transform:uppercase;margin-bottom:16px}
+.doc-logo b{color:#a3e635}
+.doc-title{font-family:var(--font-display);font-size:clamp(24px,5vw,38px);font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-bottom:10px}
+.doc-meta{font-size:13px;color:rgba(255,255,255,.5);font-family:var(--font-mono)}
+.doc-meta b{color:#a3e635}
+
+/* ── TOC ── */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:36px}
+.toc h3{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:14px}
+.toc ol{list-style:none;display:flex;flex-direction:column;gap:6px}
+.toc li{display:flex;align-items:baseline;gap:8px;font-size:14px}
+.toc li::before{content:attr(data-n);font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--dim);min-width:20px}
+.toc a{color:var(--ink);font-weight:500}
+.toc a:hover{color:#a3e635}
+
+/* ── Section ── */
+.section{margin-bottom:44px}
+.sec-tag{display:inline-block;font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:#0f172a;color:#a3e635;padding:3px 10px;border-radius:100px;margin-bottom:10px}
+h2.sec-title{font-family:var(--font-display);font-size:clamp(20px,3.5vw,28px);font-weight:800;letter-spacing:-.04em;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid var(--border)}
+.sec-intro{font-size:14px;color:var(--dim);margin-bottom:20px;line-height:1.7}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:14px}
+.card-hd{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.card-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex:none}
+.card-icon.fix{background:var(--green-bg);color:var(--green)}
+.card-icon.new{background:var(--blue-bg);color:var(--blue)}
+.card-icon.warn{background:#fefce8;color:#a16207}
+.card-info{flex:1}
+.card-label{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.card-label h3{font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-.03em}
+.tag{font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.05em;padding:2px 7px;border-radius:100px;white-space:nowrap}
+.tag.fix{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.tag.new{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.tag.warn{background:#fefce8;color:#a16207;border:1px solid #fde68a}
+.card p{font-size:14px;color:var(--dim);line-height:1.65}
+.card p+p{margin-top:6px}
+
+/* ── Code blocks ── */
+.code-wrap{background:#0f172a;border-radius:10px;padding:16px 18px;margin:12px 0;overflow-x:auto}
+.code-wrap pre{font-family:var(--font-mono);font-size:12px;color:#e2e8f0;line-height:1.7;white-space:pre}
+.code-wrap .c{color:#64748b}
+.code-wrap .k{color:#7dd3fc}
+.code-wrap .s{color:#86efac}
+.code-wrap .fn{color:#c4b5fd}
+.code-wrap .v{color:#fde68a}
+
+/* ── Before/After ── */
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+@media(max-width:600px){.ba-grid{grid-template-columns:1fr}}
+.ba-card{border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.6}
+.ba-card.before{background:var(--red-bg);border:1px solid var(--red-border)}
+.ba-card.after{background:var(--green-bg);border:1px solid var(--green-border)}
+.ba-label{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.08em;margin-bottom:8px}
+.ba-card.before .ba-label{color:var(--red)}
+.ba-card.after .ba-label{color:var(--green)}
+.ba-card code{font-family:var(--font-mono);font-size:12px}
+
+/* ── Feature list ── */
+.feature-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.feature-list li{display:flex;gap:10px;font-size:14px;align-items:flex-start}
+.feature-list li::before{content:'✦';color:var(--accent);font-size:12px;flex:none;margin-top:3px}
+
+/* ── Stats row ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.stat-card .n{font-family:var(--font-display);font-size:28px;font-weight:800;color:#0f172a}
+.stat-card .l{font-size:12px;color:var(--dim);margin-top:2px}
+
+/* ── File tag ── */
+.file{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:2px 8px;font-family:var(--font-mono);font-size:12px;color:#334155}
+
+/* ── Footer ── */
+.doc-ft{margin-top:48px;padding-top:24px;border-top:1px solid var(--border);text-align:center;font-size:13px;color:var(--dim)}
+.doc-ft b{color:var(--ink)}
+
+@media print{
+  body{background:#fff}
+  .page{padding:20px 0;max-width:100%}
+  .doc-hd{border-radius:8px}
+  .card{break-inside:avoid}
+  .section{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="doc-hd">
+    <div class="doc-logo">FIT<b>FUEL</b></div>
+    <div class="doc-title">Registro de cambios y mejoras</div>
+    <div class="doc-meta">Versión 2.0 · <b>30 de junio de 2026</b> · Guatemala</div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="n">10</div><div class="l">errores de lógica corregidos</div></div>
+    <div class="stat-card"><div class="n">5</div><div class="l">archivos modificados</div></div>
+    <div class="stat-card"><div class="n">3</div><div class="l">funciones nuevas añadidas</div></div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>Contenido</h3>
+    <ol>
+      <li data-n="1"><a href="#s1">Formulario de contacto — Web3Forms</a></li>
+      <li data-n="2"><a href="#s2">Checkout — pedido sin WhatsApp</a></li>
+      <li data-n="3"><a href="#s3">Errores de lógica corregidos (10 puntos)</a></li>
+      <li data-n="4"><a href="#s4">Panel de administración — Dashboard de ventas</a></li>
+      <li data-n="5"><a href="#s5">Gestión de pedidos en el admin</a></li>
+      <li data-n="6"><a href="#s6">Inventario (stock) de productos</a></li>
+      <li data-n="7"><a href="#s7">Configuración de envío desde el admin</a></li>
+      <li data-n="8"><a href="#s8">Archivos modificados — resumen técnico</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 CONTACTO -->
+  <div class="section" id="s1">
+    <div class="sec-tag">01</div>
+    <h2 class="sec-title">Formulario de contacto — Web3Forms</h2>
+    <p class="sec-intro">El formulario de contacto anterior no tenía atributos <code>name</code> en sus campos, por lo que FormData no capturaba ningún dato. Se eliminó la dependencia de WhatsApp y EmailJS y se integró Web3Forms, que envía el mensaje directamente al correo del propietario sin requerir permisos OAuth.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📧</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Integración Web3Forms</h3><span class="tag new">NUEVO</span></div>
+          <p>Se usa la API pública de Web3Forms. El cliente rellena el formulario y hace clic en "Enviar" — no tiene que hacer nada más. El correo llega al inbox del administrador en segundos.</p>
+        </div>
+      </div>
+      <div class="ba-grid">
+        <div class="ba-card before">
+          <div class="ba-label">ANTES — sin funcionar</div>
+          <code>
+            &lt;input placeholder="Tu nombre" /&gt;<br/>
+            &lt;input placeholder="Correo" /&gt;<br/>
+            &lt;!-- Sin name="" → FormData vacío --&gt;
+          </code>
+        </div>
+        <div class="ba-card after">
+          <div class="ba-label">AHORA — operativo</div>
+          <code>
+            &lt;input name="nombre" /&gt;<br/>
+            &lt;input name="correo" /&gt;<br/>
+            &lt;input name="telefono" /&gt;<br/>
+            &lt;textarea name="mensaje" /&gt;
+          </code>
+        </div>
+      </div>
+      <p>La función <code>submit</code> ahora es async: deshabilita el botón mientras envía, muestra "Enviando…", solo marca éxito si la API confirma <code>data.success === true</code> y muestra error toast en caso contrario.</p>
+    </div>
+  </div>
+
+  <!-- 2 CHECKOUT -->
+  <div class="section" id="s2">
+    <div class="sec-tag">02</div>
+    <h2 class="sec-title">Checkout — pedido sin WhatsApp</h2>
+    <p class="sec-intro">El proceso de compra anterior abría WhatsApp del navegador y el cliente tenía que enviar el mensaje manualmente. Si no tenía sesión iniciada en WhatsApp Web, el proceso fallaba. Ahora el cliente solo hace clic en "Confirmar pedido" y el sistema hace todo.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">🛒</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Confirmación automática vía Web3Forms</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>Al confirmar, se envía el pedido completo (productos, cantidades, datos de envío, método de pago) al correo del administrador. El carrito <strong>solo se vacía si el envío es exitoso</strong> — si hay error de red, el cliente no pierde su pedido.</p>
+        </div>
+      </div>
+      <ul class="feature-list">
+        <li>Botón deshabilitado durante el envío para evitar doble clic</li>
+        <li>Texto del botón cambia a "Enviando pedido…" mientras procesa</li>
+        <li>Pantalla de éxito muestra número de pedido y total</li>
+        <li>Toast de error si la API falla, sin borrar el carrito</li>
+        <li>Pedido guardado en <span class="file">localStorage / ff_orders</span> para el dashboard del admin</li>
+        <li>Stock de cada producto decrementado automáticamente al confirmar</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3 BUGS -->
+  <div class="section" id="s3">
+    <div class="sec-tag">03</div>
+    <h2 class="sec-title">Errores de lógica corregidos</h2>
+    <p class="sec-intro">Se identificaron y resolvieron 10 puntos débiles que causaban comportamiento incorrecto, crashes silenciosos o experiencias de usuario confusas.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">⚛️</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 1 — Hooks fuera de componente React</h3><span class="tag fix">CRÍTICO</span></div>
+          <p>Todas las páginas con hooks (<code>useState</code>, <code>useEffect</code>) se llamaban como funciones ordinarias <code>renderPage()</code>. Esto viola las Reglas de Hooks de React y causaba crashes aleatorios y comportamiento impredecible de estado.</p>
+        </div>
+      </div>
+      <div class="ba-grid">
+        <div class="ba-card before"><div class="ba-label">ANTES — incorrecto</div><code>case "contacto": return ContactPage(ctx);</code></div>
+        <div class="ba-card after"><div class="ba-label">AHORA — correcto</div><code>case "contacto": return &lt;ContactPage ctx={ctx} /&gt;;</code></div>
+      </div>
+      <p>Todas las firmas de funciones de página cambiadas de <code>(ctx)</code> a <code>({ ctx })</code>. Archivo afectado: <span class="file">pages.jsx</span> + <span class="file">app.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">🗑️</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 2 — Items fantasma en el carrito</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>Si el admin cambiaba o eliminaba productos, el carrito del cliente podía contener IDs que ya no existían. Al ir al checkout, los items aparecían sin nombre, precio ni imagen.</p>
+        </div>
+      </div>
+      <p>Se añadió un <code>useEffect</code> al montar la app que filtra el carrito contra el índice activo de productos. Items inválidos se eliminan automáticamente. Archivo: <span class="file">app.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">🔍</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 3 — Doble render en el catálogo</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>El componente <code>Catalog</code> tenía un <code>useEffect</code> que sincronizaba <code>cat</code> con <code>initialCat</code>. Esto causaba un render extra innecesario cada vez que el usuario cambiaba de categoría.</p>
+        </div>
+      </div>
+      <p>Se eliminó el efecto redundante. El estado se inicializa directamente con <code>useState(initialCat)</code>. Archivo: <span class="file">components-shop.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">🏎️</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 4 — IntersectionObserver antes del DOM</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>El observer de animaciones <code>.reveal</code> se registraba antes de que React pintara el DOM nuevo al cambiar de ruta. Muchos elementos nunca entraban en viewport y nunca se animaban.</p>
+        </div>
+      </div>
+      <p>Se añadió un <code>setTimeout</code> de 50ms para esperar el siguiente frame de pintura antes de registrar los elementos. Archivo: <span class="file">app.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">💬</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 5 — Disclaimer engañoso en reseñas</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>El formulario de reseñas decía "la publicamos pronto" dando a entender un proceso automático, cuando en realidad las reseñas requieren revisión manual del equipo.</p>
+        </div>
+      </div>
+      <p>Texto actualizado a: <em>"La revisamos y, si todo está en orden, la publicamos manualmente."</em> Archivo: <span class="file">pages.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">🚚</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 6 — Condición de envío gratis incorrecta</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>La condición de envío gratis incluía <code>|| subtotal === 0</code>, lo que regalaba envío gratis cuando el carrito estaba vacío — una condición imposible de alcanzar en el checkout pero lógicamente incorrecta.</p>
+        </div>
+      </div>
+      <p>Simplificado a <code>subtotal &gt;= FREE_SHIP</code>. Archivo: <span class="file">pages.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">🪟</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 7 — postMessage sin verificar iframe</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>El panel de tweaks llamaba <code>window.parent.postMessage()</code> incondicionalmente. Cuando la tienda cargaba directamente (sin estar dentro de un iframe), esto lanzaba errores de seguridad de cross-origin en consola.</p>
+        </div>
+      </div>
+      <p>Se añadió guardia <code>if (window.parent !== window)</code> antes de cada llamada. Archivo: <span class="file">tweaks-panel.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">💰</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 8 — Costo de envío hardcodeado</h3><span class="tag fix">CORREGIDO</span></div>
+          <p>El valor de Q35 de envío estándar estaba escrito directamente en el código del checkout. El admin no podía cambiarlo sin modificar el código fuente.</p>
+        </div>
+      </div>
+      <p>Cambiado a <code>const SHIP_COST = () =&gt; FF.SHIP_COST || 35</code> — se lee del objeto global que a su vez carga desde <span class="file">localStorage</span>. El admin puede editarlo desde Ajustes. Archivo: <span class="file">pages.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📝</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 9 — Inputs de contacto sin name</h3><span class="tag fix">CRÍTICO</span></div>
+          <p>Los campos del formulario de contacto no tenían atributo <code>name</code>. <code>FormData</code> devolvía un objeto vacío, por lo que el mensaje llegaba sin ningún dato del cliente.</p>
+        </div>
+      </div>
+      <p>Añadidos <code>name="nombre"</code>, <code>name="correo"</code>, <code>name="telefono"</code>, <code>name="mensaje"</code>. Archivo: <span class="file">pages.jsx</span></p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">💳</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Bug 10 — Carrito se borraba aunque el pedido fallara</h3><span class="tag fix">CRÍTICO</span></div>
+          <p>En el checkout original, <code>clearCart()</code> se llamaba antes de esperar la respuesta de la API. Si había un error de red, el cliente perdía su carrito sin que el pedido se hubiera procesado.</p>
+        </div>
+      </div>
+      <p><code>clearCart()</code> movido dentro del bloque <code>try</code>, después de confirmar que <code>data.success === true</code>. Archivo: <span class="file">pages.jsx</span></p>
+    </div>
+  </div>
+
+  <!-- 4 DASHBOARD -->
+  <div class="section" id="s4">
+    <div class="sec-tag">04</div>
+    <h2 class="sec-title">Dashboard de ventas en el admin</h2>
+    <p class="sec-intro">Se añadió una nueva pestaña "Dashboard" que es la pantalla principal del admin. Usa Chart.js para visualizar los datos de pedidos guardados en <span class="file">ff_orders</span>.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">📊</div>
+        <div class="card-info">
+          <div class="card-label"><h3>KPI Cards — 4 métricas clave</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <ul class="feature-list">
+        <li><strong>Ingresos totales</strong> — suma de todos los pedidos en Q</li>
+        <li><strong>Total de pedidos</strong> — cantidad y cuántos están pendientes</li>
+        <li><strong>Ticket promedio</strong> — ingresos ÷ pedidos</li>
+        <li><strong>Unidades vendidas</strong> — total de productos despachados</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">📈</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Gráficas interactivas (Chart.js 4.4)</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <ul class="feature-list">
+        <li><strong>Barras de ingresos (30 días)</strong> — evolución diaria de ventas, con tooltip en Q</li>
+        <li><strong>Dona por categoría</strong> — distribución de ventas: Proteínas, Creatina, Pre-entreno, Aminoácidos, Vitaminas</li>
+        <li><strong>Top 5 productos</strong> — ranking con podio dorado, unidades vendidas y total en Q</li>
+        <li><strong>Pedidos recientes</strong> — los últimos 5 pedidos con estado y total</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon warn">⚠️</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Estado vacío</h3><span class="tag warn">DETALLE</span></div>
+          <p>Si no hay pedidos todavía, el dashboard muestra un estado guía en lugar de gráficas vacías. Los datos se generan en tiempo real a medida que llegan pedidos de la tienda.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 PEDIDOS -->
+  <div class="section" id="s5">
+    <div class="sec-tag">05</div>
+    <h2 class="sec-title">Gestión de pedidos</h2>
+    <p class="sec-intro">Nueva pestaña "Pedidos" en el admin. Cada pedido confirmado desde la tienda se guarda automáticamente en <span class="file">localStorage / ff_orders</span> y es visible aquí.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">🛒</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Lista de pedidos con filtros</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <ul class="feature-list">
+        <li>Filtros por estado: Todos / Pendiente / Confirmado / Enviado / Entregado / Cancelado</li>
+        <li>Tabla con: # pedido, fecha/hora, cliente, departamento, productos, total, método de pago</li>
+        <li>Cambio de estado directo desde la tabla (select dropdown)</li>
+        <li>Expandir fila para ver detalle completo: dirección, teléfono, correo, referencia, desglose de productos</li>
+        <li>Botón de eliminar pedido del historial</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">📦</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Flujo de estados</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <span style="background:#fefce8;color:#854d0e;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700">Pendiente</span>
+        <span style="color:var(--dim);align-self:center;font-size:18px">→</span>
+        <span style="background:#eff6ff;color:#1d4ed8;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700">Confirmado</span>
+        <span style="color:var(--dim);align-self:center;font-size:18px">→</span>
+        <span style="background:#f5f3ff;color:#6d28d9;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700">Enviado</span>
+        <span style="color:var(--dim);align-self:center;font-size:18px">→</span>
+        <span style="background:#f0fdf4;color:#15803d;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700">Entregado</span>
+      </div>
+      <p style="margin-top:10px">Cualquier pedido puede marcarse como <strong>Cancelado</strong> en cualquier momento. El cambio se guarda automáticamente en localStorage.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon warn">⚠️</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Limitación importante</h3><span class="tag warn">NOTA</span></div>
+          <p>Los pedidos se guardan en el <strong>localStorage del navegador donde se abre el admin</strong>. Si otro dispositivo o navegador abre el admin, no verá los mismos pedidos. Para sincronización multi-dispositivo se necesitaría un backend con base de datos. El sistema de email (Web3Forms) sí notifica al correo en todos los casos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 INVENTARIO -->
+  <div class="section" id="s6">
+    <div class="sec-tag">06</div>
+    <h2 class="sec-title">Inventario de productos</h2>
+    <p class="sec-intro">Se añadió el campo <code>stock</code> a todos los productos del catálogo y se integró en el panel de admin y en el proceso de checkout.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">📦</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Campo stock en cada producto</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <ul class="feature-list">
+        <li><code>null</code> = sin límite de stock (products digitales o con stock ilimitado)</li>
+        <li>Un número entero = cantidad disponible en inventario</li>
+        <li>Al confirmar un pedido, el stock se decrementa automáticamente</li>
+        <li>No puede bajar de 0</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">🔴</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Indicadores visuales en la tabla de productos</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0">
+        <span style="display:flex;align-items:center;gap:5px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span><b style="color:#15803d">48 uds.</b> — Stock OK</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block"></span><b style="color:#a16207">12 uds.</b> — Stock bajo (&lt;15)</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block"></span><b style="color:#dc2626">3 uds.</b> — Crítico (&lt;5)</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#d1d5db;display:inline-block"></span><b style="color:#6b7280">Sin límite</b></span>
+      </div>
+      <p>El admin puede editar el stock de cualquier producto desde el formulario de edición. Dejar el campo vacío = sin límite.</p>
+    </div>
+  </div>
+
+  <!-- 7 ENVÍO -->
+  <div class="section" id="s7">
+    <div class="sec-tag">07</div>
+    <h2 class="sec-title">Configuración de envío desde el admin</h2>
+    <p class="sec-intro">Los costos de envío ahora son configurables desde el panel de administración, sin tocar código.</p>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">🚚</div>
+        <div class="card-info">
+          <div class="card-label"><h3>Dos parámetros editables desde Ajustes</h3><span class="tag new">NUEVO</span></div>
+        </div>
+      </div>
+      <ul class="feature-list">
+        <li><strong>Envío gratis desde (Q)</strong> — monto mínimo para envío gratis (default: Q400)</li>
+        <li><strong>Costo de envío estándar (Q)</strong> — costo cuando no alcanza el mínimo (default: Q35)</li>
+      </ul>
+      <p style="margin-top:10px">Los valores se guardan en <span class="file">localStorage / ff_data</span> y se leen cada vez que se carga la tienda. El checkout los usa automáticamente.</p>
+    </div>
+  </div>
+
+  <!-- 8 ARCHIVOS -->
+  <div class="section" id="s8">
+    <div class="sec-tag">08</div>
+    <h2 class="sec-title">Archivos modificados — resumen técnico</h2>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📄</div>
+        <div class="card-info">
+          <div class="card-label"><h3><span class="file">pages.jsx</span></h3></div>
+          <p>Mayor archivo modificado. Cambios: firmas de todas las páginas a <code>({ ctx })</code>, ContactPage completo con Web3Forms, CheckoutPage completo con order tracking y stock decrement, constante <code>WEB3FORMS_KEY</code>, <code>SHIP_COST</code> como función dinámica.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📄</div>
+        <div class="card-info">
+          <div class="card-label"><h3><span class="file">app.jsx</span></h3></div>
+          <p>Cambios: <code>renderPage()</code> actualizado para usar JSX en todas las páginas, <code>ITEM_INDEX</code> incluye el campo <code>cat</code>, <code>useEffect</code> para limpiar items inválidos del carrito, delay de 50ms en IntersectionObserver.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📄</div>
+        <div class="card-info">
+          <div class="card-label"><h3><span class="file">public/data.js</span></h3></div>
+          <p>Añadido <code>FF.SHIP_COST = 35</code>, campo <code>stock</code> con valores iniciales en los 12 productos, carga de <code>shipCost</code> desde localStorage.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon new">📄</div>
+        <div class="card-info">
+          <div class="card-label"><h3><span class="file">public/admin.html</span></h3><span class="tag new">REESCRITO</span></div>
+          <p>Reescrito completamente con: Dashboard (Chart.js), pestaña Pedidos con gestión de estados, columna Stock en tabla de productos, stock en formulario de edición, campos de costo de envío en Ajustes, botón para limpiar historial de pedidos.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📄</div>
+        <div class="card-info">
+          <div class="card-label"><h3><span class="file">tweaks-panel.jsx</span></h3></div>
+          <p>Guardias <code>if (window.parent !== window)</code> añadidas antes de cada <code>window.parent.postMessage()</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-icon fix">📄</div>
+        <div class="card-info">
+          <div class="card-label"><h3><span class="file">components-shop.jsx</span></h3></div>
+          <p>Eliminado <code>useEffect</code> redundante en <code>Catalog</code> que causaba doble render al cambiar categoría.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="doc-ft">
+    <p><b>FITFUEL</b> — Guatemala · Versión 2.0 · 30 de junio de 2026</p>
+    <p style="margin-top:6px">Para imprimir este documento como PDF usa <b>Ctrl+P → Guardar como PDF</b> en tu navegador.</p>
+  </div>
+
+</div>
+</body>
+</html>
