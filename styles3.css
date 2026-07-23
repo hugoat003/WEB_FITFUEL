@@ -4,7 +4,10 @@
 
 /* ---------- IMÁGENES REALES (con fallback a placeholder) ---------- */
 .ph-img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-md); display: block; }
-.pcard-vis .ph-img { aspect-ratio: 1/1; }
+/* La imagen/placeholder llena por completo el enlace (que ya es un cuadrado de
+   tamaño definido). Sin aspect-ratio en el <img>: evita el bug de iOS Safari
+   que lo dimensionaba por su proporción intrínseca dejando franja lateral. */
+.pcard-vis .ph, .pcard-vis .ph-img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .pdp-vis .ph-img { aspect-ratio: 1/1; }
 .bl-vis .ph-img, .article-vis .ph-img { border-radius: 0; height: 100%; }
 .citem-vis .ph-img, .co-item-vis .ph-img { border-radius: var(--r-sm); }
@@ -168,14 +171,20 @@ a.contact-row:hover { background: var(--bg-2); }
 
 /* ---------- CHECKOUT ---------- */
 .checkout-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 26px; align-items: start; }
+/* Los ítems del grid deben poder encoger (evita desbordes por contenido ancho). */
+.checkout-form, .checkout-sum { min-width: 0; }
 .co-h { font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: -0.01em; margin: 0 0 4px; }
 .checkout-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 26px; display: flex; flex-direction: column; gap: 14px; }
 .checkout-form .co-h:not(:first-child) { margin-top: 14px; padding-top: 18px; border-top: 1px solid var(--border); }
-.co-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.co-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; min-width: 0; }
+.co-row > *, .checkout-form label { min-width: 0; }
 .checkout-form label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 600; color: var(--text-dim); }
 .checkout-form input, .checkout-form select {
   font-family: inherit; font-size: 15px; color: var(--text); background: var(--bg-2);
   border: 1px solid var(--border); border-radius: var(--r-sm); padding: 13px 15px; outline: none; transition: .18s;
+  /* width:100% + min-width:0 evitan que el ancho intrínseco del <input> (~200px)
+     impida encoger dentro de flex/grid y desborde la columna a la derecha. */
+  width: 100%; min-width: 0;
 }
 .checkout-form input:focus, .checkout-form select:focus { border-color: var(--accent); }
 .checkout-form input::placeholder { color: var(--text-dim); }
@@ -487,4 +496,17 @@ a.contact-row:hover { background: var(--bg-2); }
 .promo-popup-skip:hover { color:var(--text); }
 @media(max-width:400px){
   .promo-popup { right:12px;bottom:12px;width:calc(100vw - 24px); }
+}
+
+/* iOS Safari hace zoom automático al enfocar un campo con fuente < 16px, lo que
+   desplaza y "corta" la vista (se veía descuadrado el checkout en iPhone).
+   Forzamos 16px en todos los campos de texto en móvil. */
+@media (max-width: 560px) {
+  input, select, textarea,
+  .checkout-form input, .checkout-form select,
+  .review-form input, .review-form select, .review-form textarea,
+  .contact-form input, .contact-form textarea,
+  .auth-form input, .co-promo-input, .m-search input {
+    font-size: 16px;
+  }
 }

@@ -145,7 +145,8 @@ input[type=range]{width:100%;accent-color:#a3e635;margin:4px 0}
 .pres-head{display:grid;grid-template-columns:26px 1fr 1fr 28px;gap:8px;align-items:center}
 .pres-head input{min-width:0}
 .pres-n{font-family:var(--font-mono);font-size:12px;color:var(--dim)}
-.pres-head2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.pres-head2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+@media (max-width:560px){ .pres-head2{grid-template-columns:1fr 1fr} }
 .pres-field{display:flex;flex-direction:column;gap:4px}
 .pres-flbl{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--dim)}
 .pres-field input{min-width:0;width:100%}
@@ -237,6 +238,7 @@ input[type=range]{width:100%;accent-color:#a3e635;margin:4px 0}
 .dash-card .dc-sub{font-size:12px;color:var(--dim)}
 .dash-card.accent-card{border-color:rgba(163,230,53,.4);background:rgba(163,230,53,.06)}
 .dash-card.accent-card .dc-value{color:#3d6b02}
+.cost-warning{margin:-8px 0 24px;padding:10px 14px;border-radius:10px;font-size:13px;background:rgba(234,88,12,.08);border:1px solid rgba(234,88,12,.28);color:#c2410c}
 
 .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
 .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
@@ -367,12 +369,33 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
 
       <!-- DASHBOARD / VENTAS -->
       <div id="tab-ventas" class="tab-content active">
+        <!-- Fila de rentabilidad -->
         <div class="dash-cards">
           <div class="dash-card accent-card">
-            <div class="dc-label">Ingresos totales</div>
-            <div class="dc-value" id="kpi-revenue">Q0.00</div>
-            <div class="dc-sub" id="kpi-revenue-sub">todos los pedidos</div>
+            <div class="dc-label">Venta neta</div>
+            <div class="dc-value" id="kpi-net">Q0.00</div>
+            <div class="dc-sub" id="kpi-net-sub">productos, sin envío</div>
           </div>
+          <div class="dash-card">
+            <div class="dc-label">Ganancia bruta</div>
+            <div class="dc-value" id="kpi-profit">Q0.00</div>
+            <div class="dc-sub" id="kpi-profit-sub">venta neta − costo</div>
+          </div>
+          <div class="dash-card">
+            <div class="dc-label">Margen</div>
+            <div class="dc-value" id="kpi-margin">—</div>
+            <div class="dc-sub">sobre venta neta</div>
+          </div>
+          <div class="dash-card">
+            <div class="dc-label">Envío cobrado</div>
+            <div class="dc-value" id="kpi-shipping">Q0.00</div>
+            <div class="dc-sub">lo paga el cliente</div>
+          </div>
+        </div>
+        <div id="cost-warning" class="cost-warning" style="display:none"></div>
+
+        <!-- Fila de operación -->
+        <div class="dash-cards">
           <div class="dash-card">
             <div class="dc-label">Pedidos</div>
             <div class="dc-value" id="kpi-orders">0</div>
@@ -381,12 +404,17 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
           <div class="dash-card">
             <div class="dc-label">Ticket promedio</div>
             <div class="dc-value" id="kpi-ticket">Q0.00</div>
-            <div class="dc-sub">por pedido</div>
+            <div class="dc-sub">venta neta por pedido</div>
           </div>
           <div class="dash-card">
             <div class="dc-label">Unidades vendidas</div>
             <div class="dc-value" id="kpi-units">0</div>
             <div class="dc-sub">productos despachados</div>
+          </div>
+          <div class="dash-card">
+            <div class="dc-label">Ingreso bruto</div>
+            <div class="dc-value" id="kpi-revenue">Q0.00</div>
+            <div class="dc-sub">incluye envío</div>
           </div>
         </div>
 
@@ -416,7 +444,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
 
         <div class="charts-row" id="charts-row">
           <div class="chart-card">
-            <h3>Ingresos · últimos 30 días</h3>
+            <h3>Ventas netas y ganancia · últimos 30 días</h3>
             <div class="chart-wrap"><canvas id="chart-revenue"></canvas></div>
           </div>
           <div class="chart-card">
@@ -482,7 +510,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
         <div class="report-grid">
           <div class="settings-card">
             <h3>📊 Ventas / Ingresos</h3>
-            <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Resumen del período: ingresos, pedidos, ticket promedio, unidades, ventas por categoría y top productos.</p>
+            <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Resumen del período: venta neta, costo, <b>ganancia y margen</b>, envío cobrado, top productos con su ganancia y ventas por categoría.</p>
             <div style="display:flex;gap:8px">
               <button class="btn btn-primary btn-sm" onclick="reportVentasCSV()">Descargar CSV</button>
               <button class="btn btn-accent btn-sm" onclick="reportVentasPDF()">Generar PDF</button>
@@ -490,10 +518,18 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
           </div>
           <div class="settings-card">
             <h3>🛒 Pedidos detallados</h3>
-            <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Listado completo de pedidos del período con cliente, productos, pago, estado y totales.</p>
+            <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Listado completo de pedidos del período con cliente, productos, pago, estado, totales y ganancia por pedido (CSV).</p>
             <div style="display:flex;gap:8px">
               <button class="btn btn-primary btn-sm" onclick="reportPedidosCSV()">Descargar CSV</button>
               <button class="btn btn-accent btn-sm" onclick="reportPedidosPDF()">Generar PDF</button>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h3>🚚 Entregas / Logística</h3>
+            <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Hoja de ruta para las entregas: cliente, teléfono, dirección completa, productos a empacar, método de pago y <b>cuánto cobrar</b> (contra entrega). Sin datos financieros internos. Excluye pedidos cancelados.</p>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="reportEntregasCSV()">Descargar CSV</button>
+              <button class="btn btn-accent btn-sm" onclick="reportEntregasPDF()">Generar PDF</button>
             </div>
           </div>
         </div>
@@ -547,6 +583,16 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
             <tbody id="testimonios-tbody"></tbody>
           </table>
         </div>
+        <div style="margin-top:28px">
+          <h3 style="font-family:var(--font-display);font-size:16px;font-weight:800;margin-bottom:4px">Reseñas de clientes</h3>
+          <p style="font-size:13px;color:var(--dim);margin-bottom:12px">Enviadas desde la web por clientes con compra verificada. Publícalas para que aparezcan en la tienda.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Lugar</th><th>★</th><th>Reseña</th><th>Estado</th><th class="col-actions"></th></tr></thead>
+              <tbody id="reviews-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- AJUSTES -->
@@ -568,7 +614,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
             <div class="fg"><label class="lbl">WhatsApp (contacto)</label><input type="text" id="c-whatsapp" placeholder="+502 0000 0000" /></div>
           </div>
           <div class="fg2" style="margin-top:12px">
-            <div class="fg"><label class="lbl">Correo</label><input type="text" id="c-email" placeholder="hola@fitfuel.gt" /></div>
+            <div class="fg"><label class="lbl">Correo</label><input type="text" id="c-email" placeholder="contacto@fitfuelgt.com" /></div>
           </div>
           <!-- Tienda física — pendiente de activar
           <div class="fg2" style="margin-top:12px">
@@ -584,6 +630,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
             <div class="fg"><label class="lbl">Costo de envío estándar (Q)</label><input type="number" id="c-shipcost" min="0" step="1" placeholder="35" /></div>
           </div>
           <p style="font-size:12px;color:var(--dim);margin-top:8px">El costo de envío es lo que paga el cliente cuando no alcanza el mínimo para envío gratis.</p>
+          <p style="font-size:12px;color:var(--dim);margin-top:6px">💡 El <b>costo</b> de cada producto se llena en su editor (por presentación) y se guarda de forma <b>privada</b> en Supabase — nunca se publica en la tienda. El dashboard usa ese costo para calcular ganancia y margen.</p>
           <button class="btn btn-accent" style="margin-top:14px" id="btn-save-contact">Guardar contacto</button>
         </div>
 
@@ -600,11 +647,29 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
           <h3>Categorías de productos</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>Etiqueta</th></tr></thead>
+              <thead><tr><th>ID</th><th>Etiqueta</th><th>Productos</th><th class="col-actions"></th></tr></thead>
               <tbody id="cats-tbody"></tbody>
             </table>
           </div>
-          <p style="font-size:12px;color:var(--dim);margin-top:10px">Las categorías y objetivos se gestionan desde ajustes avanzados.</p>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <input type="text" id="new-cat" placeholder="Nueva categoría (ej. Quemadores)" style="flex:1" />
+            <button class="btn btn-primary" id="btn-add-cat" onclick="addCat()">Añadir</button>
+          </div>
+          <p style="font-size:12px;color:var(--dim);margin-top:10px">El ID se genera solo desde el nombre. No puedes borrar una categoría con productos asignados. Recuerda <b>Publicar</b> para reflejarlo en la tienda.</p>
+        </div>
+
+        <div class="settings-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+            <h3 style="margin:0">Objetivos (selector "¿Cuál es tu meta?")</h3>
+            <button class="btn btn-primary btn-sm" onclick="openGoal()">+ Nuevo objetivo</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Objetivo</th><th>Descripción</th><th>Ícono</th><th>Productos</th><th class="col-actions"></th></tr></thead>
+              <tbody id="goals-tbody"></tbody>
+            </table>
+          </div>
+          <p style="font-size:12px;color:var(--dim);margin-top:10px">Al editar un objetivo puedes asignarle los productos que aparecerán cuando el cliente lo elija. Recuerda <b>Publicar</b> para reflejarlo en la tienda.</p>
         </div>
 
         <div class="settings-card">
@@ -660,7 +725,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
 
 <div class="toasts" id="toasts"></div>
 
-<script src="data.js?v=8"></script>
+<script src="data.js?v=9"></script>
 <script>
 // ── Supabase (cliente al inicio, para el gate de acceso) ───────────────────────
 const SB_URL = 'https://dwdxnpyybzpcjetxedyq.supabase.co';
@@ -669,6 +734,7 @@ let sbClient = supabase.createClient(SB_URL, SB_KEY);
 let sbProfiles = [];
 let adminUser = null;
 let liveStockMap = {};  // { 'product_id|variante': qty } — stock real desde Supabase
+let costMap = {};       // { 'product_id|variante': costo } — costo PRIVADO desde Supabase (nunca se publica)
 
 // ── Auth: acceso solo para administradores (Supabase Auth + profiles.is_admin) ──
 let adminReady = false;
@@ -687,6 +753,7 @@ async function enterAdmin(user) {
   const badge = document.getElementById('admin-email'); if (badge && adminUser) badge.textContent = adminUser.email;
   loadData();
   await loadLiveStock();   // superpone el stock real de Supabase antes de renderizar
+  await loadCosts();       // carga los costos privados (para margen/ganancia del dashboard)
   render();
   initSbAdmin();
 }
@@ -707,6 +774,16 @@ async function loadLiveStock() {
       p.stock = anyUnlim ? null : p.variants.reduce((s, v) => s + (v.stock || 0), 0);
     });
   } catch (e) { /* tabla stock aún no existe: se usa el snapshot */ }
+}
+
+// Trae la tabla PRIVADA `costs` a costMap. A diferencia del stock, NO se superpone al producto
+// (para que el costo jamás termine en D.products ni en el catálogo publicado).
+async function loadCosts() {
+  try {
+    const { data } = await sbClient.from('costs').select('product_id, variant, cost');
+    costMap = {};
+    (data || []).forEach(r => { costMap[r.product_id + '|' + (r.variant || '')] = Number(r.cost) || 0; });
+  } catch (e) { /* tabla costs aún no existe: el margen queda sin costos */ }
 }
 async function adminLogin() {
   const email = (document.getElementById('auth-email').value || '').trim();
@@ -773,7 +850,7 @@ function loadData() {
   D.contact      = clone(FF.CONTACT || {});
   D.freeShip     = typeof FF.FREE_SHIP === 'number' ? FF.FREE_SHIP : 400;
   D.shipCost     = typeof FF.SHIP_COST === 'number' ? FF.SHIP_COST : 35;
-  try { D_orders = JSON.parse(localStorage.getItem('ff_orders') || '[]'); } catch { D_orders = []; }
+  try { D_orders = JSON.parse(localStorage.getItem('ff_orders') || '[]').map(normalizeOrder); } catch { D_orders = []; }
 }
 
 function save() {
@@ -879,7 +956,20 @@ function toast(msg, err) {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-const esc = s => String(s ?? '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Normaliza un pedido (venga de localStorage o de Supabase): fuerza tipos numéricos y sanea
+// los items. Mata el XSS por campos crudos (p. ej. qty interpolado en innerHTML) y los NaN en KPIs.
+function normalizeOrder(o) {
+  o = o || {};
+  const items = Array.isArray(o.items) ? o.items.map(it => ({
+    id: String((it && it.id) ?? ''), name: String((it && it.name) ?? ''),
+    flavor: String((it && it.flavor) ?? ''), cat: String((it && it.cat) ?? ''),
+    qty: Number(it && it.qty) || 0, price: Number(it && it.price) || 0,
+  })) : [];
+  return { ...o, items,
+    subtotal: Number(o.subtotal) || 0, shipping: Number(o.shipping) || 0,
+    total: Number(o.total) || 0, discount_pct: Number(o.discount_pct) || 0 };
+}
 const hueColor = h => `oklch(0.72 0.17 ${h})`;
 const money = n => 'Q' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
 const fmtDate = s => { try { return new Date(s).toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' }); } catch { return s; } };
@@ -978,26 +1068,73 @@ function render() {
     case 'productos':  renderProducts(); break;
     case 'packs':      renderPacks(); break;
     case 'blog':       renderBlog(); break;
-    case 'testimonios':renderTestimonios(); break;
+    case 'testimonios':renderTestimonios(); renderReviews(); break;
     case 'ajustes':    renderAjustes(); break;
   }
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
+// Un pedido cuenta como VENTA solo cuando ya fue confirmado (o más allá). Los pendientes
+// (aún podrían cancelarse) y los cancelados no suman a ingresos/ganancia.
+const SALE_STATUSES = ['confirmado', 'enviado', 'entregado'];
+function countsAsSale(o) { return SALE_STATUSES.includes(o.status); }
+
+// COGS (costo de la mercadería vendida) de un pedido usando los costos privados.
+function orderCOGS(o) {
+  return (o.items || []).reduce((s, it) => {
+    const c = costMap[it.id + '|' + (it.flavor || '')] || 0;
+    return s + c * (it.qty || 0);
+  }, 0);
+}
+// Venta neta de productos (subtotal − descuento, sin envío).
+function orderNet(o) {
+  const sub = o.subtotal || 0;
+  const disc = sub * ((o.discount_pct || 0) / 100);
+  return sub - disc;
+}
+
 function renderVentas() {
   const orders = D_orders;
-  const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
   const orderCount = orders.length;
-  const avgTicket = orderCount > 0 ? totalRevenue / orderCount : 0;
-  const totalUnits = orders.reduce((s, o) => s + (o.items || []).reduce((ss, it) => ss + (it.qty || 0), 0), 0);
-  const pending = orders.filter(o => o.status === 'pendiente').length;
+  // Los cancelados no cuentan para venta/ganancia (pero sí en el conteo de pedidos).
+  const valid = orders.filter(countsAsSale);   // solo confirmado/enviado/entregado
 
+  const totalRevenue = valid.reduce((s, o) => s + (o.total || 0), 0);   // ingreso bruto (incl. envío)
+  const netSales     = valid.reduce((s, o) => s + orderNet(o), 0);       // venta neta (sin envío)
+  const shippingSum  = valid.reduce((s, o) => s + (o.shipping || 0), 0); // envío cobrado
+  const cogs         = valid.reduce((s, o) => s + orderCOGS(o), 0);      // costo de producto
+  const grossProfit  = netSales - cogs;                                  // ganancia bruta
+  const margin       = netSales > 0 ? (grossProfit / netSales) * 100 : null;
+  const avgTicket    = valid.length > 0 ? netSales / valid.length : 0;
+  const totalUnits   = valid.reduce((s, o) => s + (o.items || []).reduce((ss, it) => ss + (it.qty || 0), 0), 0);
+  const pending      = orders.filter(o => o.status === 'pendiente').length;
+
+  // Ítems vendidos sin costo capturado (el margen puede estar incompleto).
+  const missing = new Set();
+  valid.forEach(o => (o.items || []).forEach(it => {
+    if (!((it.id + '|' + (it.flavor || '')) in costMap)) missing.add(it.id + '|' + (it.flavor || ''));
+  }));
+
+  document.getElementById('kpi-net').textContent = money(netSales);
+  document.getElementById('kpi-net-sub').textContent = `${valid.length} venta${valid.length !== 1 ? 's' : ''} confirmada${valid.length !== 1 ? 's' : ''}`;
+  document.getElementById('kpi-profit').textContent = money(grossProfit);
+  document.getElementById('kpi-margin').textContent = margin == null ? '—' : margin.toFixed(1) + '%';
+  document.getElementById('kpi-shipping').textContent = money(shippingSum);
   document.getElementById('kpi-revenue').textContent = money(totalRevenue);
-  document.getElementById('kpi-revenue-sub').textContent = `${orderCount} pedido${orderCount !== 1 ? 's' : ''} registrado${orderCount !== 1 ? 's' : ''}`;
   document.getElementById('kpi-orders').textContent = orderCount;
   document.getElementById('kpi-orders-sub').textContent = pending > 0 ? `${pending} pendiente${pending !== 1 ? 's' : ''}` : 'sin pendientes';
   document.getElementById('kpi-ticket').textContent = money(avgTicket);
   document.getElementById('kpi-units').textContent = totalUnits;
+
+  const warn = document.getElementById('cost-warning');
+  if (warn) {
+    if (missing.size > 0) {
+      warn.style.display = 'block';
+      warn.innerHTML = `⚠️ ${missing.size} presentación${missing.size !== 1 ? 'es' : ''} vendida${missing.size !== 1 ? 's' : ''} sin costo capturado — la ganancia y el margen pueden estar incompletos. Edita esos productos y llena el <b>Costo (Q)</b>.`;
+    } else {
+      warn.style.display = 'none';
+    }
+  }
 
   if (orderCount === 0) {
     document.getElementById('charts-row').innerHTML = `
@@ -1014,6 +1151,18 @@ function renderVentas() {
     return;
   }
 
+  // Restaura los canvases: el estado "sin datos" pudo haberlos reemplazado en un
+  // render anterior (p. ej. antes de cargar los pedidos de Supabase).
+  document.getElementById('charts-row').innerHTML = `
+          <div class="chart-card">
+            <h3>Ventas netas y ganancia · últimos 30 días</h3>
+            <div class="chart-wrap"><canvas id="chart-revenue"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Ventas por categoría</h3>
+            <div class="chart-wrap"><canvas id="chart-cats"></canvas></div>
+          </div>`;
+
   renderRevenueChart();
   renderCatsChart();
   renderTopProducts();
@@ -1022,38 +1171,54 @@ function renderVentas() {
 }
 
 function renderRevenueChart() {
-  const labels = [], dataVals = [], dayRevenue = {};
+  const labels = [], netVals = [], profitVals = [], dayNet = {}, dayProfit = {};
   const gtDay = d => { try { return new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' }); } catch { return ''; } };
   for (let i = 29; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const key = gtDay(d);
     const label = d.toLocaleDateString('es-GT', { month:'short', day:'numeric' });
-    labels.push(label); dayRevenue[key] = 0;
+    labels.push(label); dayNet[key] = 0; dayProfit[key] = 0;
   }
-  D_orders.forEach(o => {
+  D_orders.filter(countsAsSale).forEach(o => {
     const key = gtDay(o.date);
-    if (dayRevenue[key] !== undefined) dayRevenue[key] += o.total || 0;
+    if (dayNet[key] !== undefined) {
+      const net = orderNet(o);
+      dayNet[key] += net;
+      dayProfit[key] += net - orderCOGS(o);
+    }
   });
-  Object.values(dayRevenue).forEach(v => dataVals.push(v));
+  Object.keys(dayNet).forEach(k => { netVals.push(dayNet[k]); profitVals.push(dayProfit[k]); });
 
+  const canvasRev = document.getElementById('chart-revenue');
+  if (!canvasRev) return;
   if (chartRevenue) chartRevenue.destroy();
-  const ctx = document.getElementById('chart-revenue').getContext('2d');
+  const ctx = canvasRev.getContext('2d');
   chartRevenue = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
-      datasets: [{
-        label: 'Ingresos (Q)',
-        data: dataVals,
-        backgroundColor: 'rgba(163,230,53,0.7)',
-        borderColor: '#a3e635',
-        borderWidth: 1,
-        borderRadius: 4,
-      }]
+      datasets: [
+        {
+          label: 'Venta neta',
+          data: netVals,
+          backgroundColor: 'rgba(163,230,53,0.7)',
+          borderColor: '#a3e635',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: 'Ganancia',
+          data: profitVals,
+          backgroundColor: 'rgba(52,211,153,0.85)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + money(ctx.parsed.y) } } },
+      plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }, tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + money(ctx.parsed.y) } } },
       scales: {
         x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
         y: { grid: { color: '#f0f0f0' }, ticks: { callback: v => 'Q' + v, font: { size: 11 } } }
@@ -1075,8 +1240,10 @@ function renderCatsChart() {
   const catLabels = Object.keys(catRevenue);
   const catData = Object.values(catRevenue);
 
+  const canvasCats = document.getElementById('chart-cats');
+  if (!canvasCats) return;
   if (chartCats) chartCats.destroy();
-  const ctx = document.getElementById('chart-cats').getContext('2d');
+  const ctx = canvasCats.getContext('2d');
   chartCats = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -1094,10 +1261,12 @@ function renderCatsChart() {
 }
 
 function renderTopProducts() {
-  const prodRevenue = {}, prodUnits = {};
-  D_orders.forEach(o => {
+  const prodRevenue = {}, prodUnits = {}, prodProfit = {};
+  D_orders.filter(countsAsSale).forEach(o => {
     (o.items || []).forEach(it => {
+      const cost = costMap[it.id + '|' + (it.flavor || '')] || 0;
       prodRevenue[it.id] = (prodRevenue[it.id] || 0) + (it.price || 0) * (it.qty || 0);
+      prodProfit[it.id] = (prodProfit[it.id] || 0) + ((it.price || 0) - cost) * (it.qty || 0);
       prodUnits[it.id] = (prodUnits[it.id] || 0) + (it.qty || 0);
     });
   });
@@ -1105,7 +1274,7 @@ function renderTopProducts() {
     .sort((a, b) => b[1] - a[1]).slice(0, 5)
     .map(([id, rev]) => {
       const p = D.products.find(x => x.id === id) || {};
-      return { id, name: p.name || id, flavor: p.flavor || '', rev, units: prodUnits[id] || 0 };
+      return { id, name: p.name || id, flavor: p.flavor || '', rev, profit: prodProfit[id] || 0, units: prodUnits[id] || 0 };
     });
 
   const rankIcons = ['🥇','🥈','🥉'];
@@ -1118,7 +1287,10 @@ function renderTopProducts() {
           <div class="top-prod-name">${esc(p.name)}</div>
           <div class="top-prod-flavor">${esc(p.flavor)} · ${p.units} ud${p.units !== 1 ? 's' : ''}.</div>
         </div>
-        <div class="top-prod-rev">${money(p.rev)}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <div class="top-prod-rev">${money(p.rev)}</div>
+          <div style="font-size:11px;color:#10b981;font-weight:700">+${money(p.profit)} gan.</div>
+        </div>
       </div>`).join('');
 }
 
@@ -1188,7 +1360,7 @@ function renderPedidos() {
             <div class="order-detail-items">
               ${(o.items || []).map(it => `
                 <div class="order-item-line">
-                  <span>${it.qty}× ${esc(it.name)} <span style="color:var(--dim)">(${esc(it.flavor)})</span></span>
+                  <span>${esc(it.qty)}× ${esc(it.name)} <span style="color:var(--dim)">(${esc(it.flavor)})</span></span>
                   <b>${money((it.price || 0) * it.qty)}</b>
                 </div>`).join('')}
               <div class="order-item-line" style="color:var(--dim)"><span>Envío</span><span>${o.shipping === 0 ? 'Gratis' : money(o.shipping)}</span></div>
@@ -1213,14 +1385,17 @@ async function changeOrderStatus(idx, status) {
   const prev = o.status;
   o.status = status;
   saveOrders();
-  toast('Estado actualizado');
   if (curTab === 'ventas') renderVentas();
 
   // Persistir en Supabase (fuente de verdad que ve el cliente en "Mis pedidos")
+  let ok = false;
   try {
-    const { error } = await sbClient.from('orders').update({ status }).eq('id', o.id);
+    const { data, error } = await sbClient.from('orders').update({ status }).eq('id', o.id).select('id');
     if (error) throw error;
-  } catch (e) { toast('No se guardó el estado en Supabase: ' + (e.message || e), true); }
+    ok = Array.isArray(data) && data.length > 0;
+    if (!ok) throw new Error('sin permisos (RLS) — falta la política orders_update_admin');
+  } catch (e) { toast('No se guardó en Supabase: ' + (e.message || e), true); }
+  if (ok) toast('Estado actualizado ✓');
 
   // Aviso por correo al cliente (reutiliza la plantilla de confirmación)
   notifyStatus(o, status);
@@ -1243,7 +1418,7 @@ async function changeOrderStatus(idx, status) {
   }
 }
 
-// Aviso de cambio de estado por correo (EmailJS REST, misma plantilla del sitio)
+// Aviso de cambio de estado por correo (EmailJS REST — plantilla que imprime {{{html_body}}})
 const EMAILJS = { service: 'service_yqntdgr', template: 'template_58by5up', publicKey: 'YuGA3cDVuq7MODG4T' };
 const STATUS_LABELS = { pendiente:'Pendiente', confirmado:'Confirmado', enviado:'Enviado', entregado:'Entregado', cancelado:'Cancelado' };
 const STATUS_MSG = {
@@ -1252,9 +1427,130 @@ const STATUS_MSG = {
   entregado:  'Tu pedido fue entregado. ¡Gracias por tu compra!',
   cancelado:  'Tu pedido fue cancelado. Si tienes dudas, escríbenos.',
 };
+const STATUS_COLOR = { pendiente:'#8C877C', confirmado:'#2E7D5B', enviado:'#2F6FB0', entregado:'#1F8A70', cancelado:'#C0392B' };
+const STATUS_EMOJI = { pendiente:'🕒', confirmado:'✅', enviado:'🚚', entregado:'📦', cancelado:'✖️' };
+const STATUS_SUBJECT = {
+  confirmado: (id) => `✅ Tu pedido #${id} fue confirmado`,
+  enviado:    (id) => `🚚 Tu pedido #${id} va en camino`,
+  entregado:  (id) => `📦 Tu pedido #${id} fue entregado`,
+  cancelado:  (id) => `Tu pedido #${id} fue cancelado`,
+};
+
+// ── Constructores de correo HTML (diseño + colores desde el código) ──────────
+function ffEmailEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function ffItemRows(items) {
+  return (items || []).map(it => {
+    const line = ffEmailEsc(it.name) + (it.flavor ? ' <span style="color:#8C877C">(' + ffEmailEsc(it.flavor) + ')</span>' : '');
+    const amt = 'Q' + ((it.price || 0) * (it.qty || 0)).toFixed(2);
+    return `<tr>
+      <td style="padding:10px 0;border-bottom:1px solid #ECEAE3;font:14px/1.4 Arial,sans-serif;color:#16130F">
+        <span style="display:inline-block;min-width:26px;color:#8C877C;font-weight:700">${it.qty}×</span> ${line}
+      </td>
+      <td style="padding:10px 0;border-bottom:1px solid #ECEAE3;font:14px/1.4 Arial,sans-serif;color:#16130F;text-align:right;white-space:nowrap">${amt}</td>
+    </tr>`;
+  }).join('');
+}
+function ffTotalRow(label, val, opts) {
+  opts = opts || {};
+  const strong = opts.strong;
+  return `<tr>
+    <td style="padding:${strong?'12px 0 0':'4px 0'};font:${strong?'700 16px':'14px'}/1.5 Arial,sans-serif;color:${strong?'#16130F':'#5B564C'}">${label}</td>
+    <td style="padding:${strong?'12px 0 0':'4px 0'};font:${strong?'700 16px':'14px'}/1.5 Arial,sans-serif;color:#16130F;text-align:right;white-space:nowrap">${val}</td>
+  </tr>`;
+}
+// Shell común: cabecera FITFUEL, banner de color, cuerpo y footer.
+function ffEmailShell({ accent, banner, bannerEmoji, greeting, intro, o, footerNote }) {
+  const shipping = o.shipping || 0;
+  const totals =
+    (o.subtotal != null ? ffTotalRow('Subtotal', 'Q' + Number(o.subtotal).toFixed(2)) : '') +
+    ffTotalRow('Envío', shipping === 0 ? 'Gratis' : 'Q' + Number(shipping).toFixed(2)) +
+    (o.discount_code ? ffTotalRow('Descuento (' + ffEmailEsc(o.discount_code) + ')', '—') : '') +
+    (o.total != null ? ffTotalRow('Total', 'Q' + Number(o.total).toFixed(2), { strong: true }) : '');
+  const entrega = o.direccion
+    ? `<tr><td style="padding:18px 24px 0">
+         <div style="font:700 12px Arial,sans-serif;letter-spacing:1px;color:#8C877C;text-transform:uppercase;margin-bottom:6px">Entrega</div>
+         <div style="font:14px/1.5 Arial,sans-serif;color:#16130F">${ffEmailEsc(o.direccion)}${o.municipio ? ', ' + ffEmailEsc(o.municipio) : ''}${o.departamento ? ', ' + ffEmailEsc(o.departamento) : ''}${o.telefono ? '<br>Tel: ' + ffEmailEsc(o.telefono) : ''}${o.pago ? '<br>Pago: ' + ffEmailEsc(o.pago) : ''}</div>
+       </td></tr>`
+    : '';
+  return `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F4F2EC">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0">${ffEmailEsc(banner)} — Pedido #${ffEmailEsc(o.id)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F2EC;padding:24px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(20,19,15,.08)">
+        <!-- Cabecera -->
+        <tr><td style="background:#16130F;padding:22px 24px;text-align:center">
+          <span style="font:800 22px Arial,sans-serif;letter-spacing:4px;color:#EAE7DF">FITFUEL</span>
+        </td></tr>
+        <!-- Banner de estado -->
+        <tr><td style="background:${accent};padding:20px 24px;text-align:center">
+          <div style="font:800 20px Arial,sans-serif;color:#FFFFFF">${bannerEmoji ? bannerEmoji + ' ' : ''}${ffEmailEsc(banner)}</div>
+        </td></tr>
+        <!-- Saludo + intro -->
+        <tr><td style="padding:24px 24px 0">
+          <div style="font:700 18px Arial,sans-serif;color:#16130F;margin-bottom:6px">${ffEmailEsc(greeting)}</div>
+          <div style="font:15px/1.6 Arial,sans-serif;color:#5B564C">${ffEmailEsc(intro)}</div>
+        </td></tr>
+        <!-- Pedido -->
+        <tr><td style="padding:20px 24px 0">
+          <div style="font:700 12px Arial,sans-serif;letter-spacing:1px;color:#8C877C;text-transform:uppercase;margin-bottom:2px">Pedido</div>
+          <div style="font:800 16px Arial,sans-serif;color:${accent}">#${ffEmailEsc(o.id)}</div>
+        </td></tr>
+        <!-- Productos -->
+        <tr><td style="padding:12px 24px 0">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${ffItemRows(o.items)}</table>
+        </td></tr>
+        <!-- Totales -->
+        <tr><td style="padding:10px 24px 0">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${totals}</table>
+        </td></tr>
+        ${entrega}
+        <!-- Footer -->
+        <tr><td style="padding:26px 24px">
+          ${footerNote ? `<div style="font:13px/1.6 Arial,sans-serif;color:#8C877C;text-align:center;margin-bottom:14px">${ffEmailEsc(footerNote)}</div>` : ''}
+          <div style="border-top:1px solid #ECEAE3;padding-top:16px;text-align:center">
+            <div style="font:700 13px Arial,sans-serif;letter-spacing:3px;color:#16130F">FITFUEL</div>
+            <div style="font:12px/1.5 Arial,sans-serif;color:#A7A296;margin-top:4px">Suplementos para tu mejor versión · Guatemala</div>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+function buildStatusEmail(o, status) {
+  const accent = STATUS_COLOR[status] || '#16130F';
+  return ffEmailShell({
+    accent,
+    banner: STATUS_LABELS[status] || status,
+    bannerEmoji: STATUS_EMOJI[status] || '',
+    greeting: 'Hola ' + (o.nombre || ''),
+    intro: STATUS_MSG[status] || '',
+    o,
+    footerNote: '¿Dudas con tu pedido? Responde a este correo y te ayudamos.',
+  });
+}
+function buildOrderText(o, status) {
+  const itemLines = (o.items || [])
+    .map(it => `${it.qty}× ${it.name}${it.flavor ? ' (' + it.flavor + ')' : ''} — Q${((it.price || 0) * it.qty).toFixed(2)}`)
+    .join('\n');
+  const shipping = o.shipping || 0;
+  return `Estado: ${STATUS_LABELS[status] || status}\n${STATUS_MSG[status] || ''}\n\n` +
+    `Pedido: #${o.id}\n\n` +
+    (itemLines ? `PRODUCTOS:\n${itemLines}\n\n` : '') +
+    (o.subtotal != null ? `Subtotal: Q${Number(o.subtotal).toFixed(2)}\n` : '') +
+    `Envío: ${shipping === 0 ? 'Gratis' : 'Q' + Number(shipping).toFixed(2)}\n` +
+    (o.total != null ? `TOTAL: Q${Number(o.total).toFixed(2)}\n` : '') +
+    (o.direccion ? `\nENTREGA:\n${o.direccion}${o.municipio ? ', ' + o.municipio : ''}${o.departamento ? ', ' + o.departamento : ''}` : '');
+}
+
 async function notifyStatus(o, status) {
   const msg = STATUS_MSG[status];
   if (!msg || !o || !o.correo) return;
+  const html = buildStatusEmail(o, status);
   try {
     await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1263,7 +1559,10 @@ async function notifyStatus(o, status) {
         template_params: {
           to_email: o.correo, to_name: o.nombre || 'Cliente', name: o.nombre || 'Cliente',
           order_id: o.id,
-          order_details: `Estado de tu pedido #${o.id}: ${STATUS_LABELS[status] || status}.\n\n${msg}`,
+          subject: (STATUS_SUBJECT[status] ? STATUS_SUBJECT[status](o.id) : `Actualización de tu pedido #${o.id}`),
+          html_body: html,
+          // Compatibilidad: si la plantilla aún usa {{order_details}}, cae a texto plano.
+          order_details: buildOrderText(o, status),
           message: '',
         },
       }),
@@ -1311,7 +1610,7 @@ function renderProducts() {
         <div style="display:flex;align-items:center;gap:10px">
           ${p.image ? `<img class="thumb" src="${esc(p.image)}" alt="" />`
             : `<span class="thumb thumb-ph" style="background:${hueColor(p.hue)}"></span>`}
-          <div><div class="td-main">${esc(p.name)}</div><div class="td-sub">${esc(p.flavor)}</div></div>
+          <div><div class="td-main">${esc(p.name)}${p.carousel ? ' <span title="En el carrusel del inicio" style="font-size:12px">⭐</span>' : ''}</div><div class="td-sub">${esc(p.flavor)}</div></div>
         </div>
       </td>
       <td>${cat ? esc(cat.label) : esc(p.cat)}</td>
@@ -1345,6 +1644,8 @@ function renderPres() {
       <div class="pres-head2">
         <div class="pres-field"><span class="pres-flbl">Precio (Q)</span>
           <input id="pp-${i}" type="number" min="0" step="1" value="${v.price != null ? v.price : ''}" placeholder="0" /></div>
+        <div class="pres-field"><span class="pres-flbl">Costo (Q)</span>
+          <input id="pc-${i}" type="number" min="0" step="0.01" value="${v.cost ? v.cost : ''}" placeholder="0" title="Lo que te cuesta a ti (privado, no se publica)" /></div>
         <div class="pres-field"><span class="pres-flbl">Stock (uds.)</span>
           <input id="pst-${i}" type="number" min="0" step="1" value="${v.stock != null ? v.stock : ''}" placeholder="Sin límite" /></div>
       </div>
@@ -1365,6 +1666,7 @@ function syncPres() {
     const f = document.getElementById('pf-' + i); if (f) v.flavor = f.value;
     const s = document.getElementById('psz-' + i); if (s) v.size = s.value;
     const pr = document.getElementById('pp-' + i); if (pr) v.price = parseFloat(pr.value) || 0;
+    const co = document.getElementById('pc-' + i); if (co) v.cost = parseFloat(co.value) || 0;
     const st = document.getElementById('pst-' + i);
     if (st) v.stock = st.value.trim() === '' ? null : Math.max(0, parseInt(st.value) || 0);
     const fl = document.getElementById('pfacts-' + i);
@@ -1373,7 +1675,7 @@ function syncPres() {
 }
 function addPres() {
   syncPres();
-  presData.push({ flavor:'', size:'', price:0, stock:null, images:[], facts:[['',''],['','']] });
+  presData.push({ flavor:'', size:'', price:0, cost:0, stock:null, images:[], facts:[['',''],['','']] });
   renderPres();
 }
 function removePres(i) {
@@ -1404,11 +1706,12 @@ function openProduct(id) {
   presData = (FF.variantsOf(p) || []).map(v => ({
     flavor: v.flavor || '', size: v.size || '',
     price: v.price != null ? v.price : (p ? p.price : 0),
+    cost: (p ? costMap[p.id + '|' + (FF.variantLabel(v) || '')] : 0) || 0,
     stock: v.stock != null ? v.stock : null,
     images: (v.images || []).slice(),
     facts: (v.facts && v.facts.length ? v.facts : [['',''],['','']]).map(f => [f[0] || '', f[1] || '']),
   }));
-  if (!presData.length) presData = [{ flavor:'', size:'', price: p ? p.price : 0, stock: null, images: [], facts: [['',''],['','']] }];
+  if (!presData.length) presData = [{ flavor:'', size:'', price: p ? p.price : 0, cost: 0, stock: null, images: [], facts: [['',''],['','']] }];
   document.getElementById('panel-title').textContent = p ? 'Editar producto' : 'Nuevo producto';
   const cats = D.categories.filter(c => c.id !== 'all');
   const goals = D.goals;
@@ -1445,6 +1748,10 @@ function openProduct(id) {
     </div>
     <div class="fg"><label class="lbl">Descripción corta</label>
       <textarea id="f-blurb">${esc(p?.blurb||'')}</textarea>
+    </div>
+    <div class="fg">
+      <label class="chk-lbl" style="font-size:14px"><input type="checkbox" id="f-carousel"${p?.carousel ? ' checked' : ''} /> ⭐ Mostrar en el carrusel del inicio</label>
+      <p style="font-size:12px;color:var(--dim);margin-top:4px">Los productos marcados salen en el carrusel de la portada, en el orden de esta lista. Si no marcas ninguno, se muestran automáticamente los de más reseñas.</p>
     </div>
     <div class="fg"><label class="lbl">Objetivos</label>
       <div class="checks">${goals.map(g => `<label class="chk-lbl"><input type="checkbox" name="goal" value="${g.id}"${p?.goals?.includes(g.id)?' checked':''} />${g.label}</label>`).join('')}</div>
@@ -1489,6 +1796,7 @@ function saveProduct() {
     badge: document.getElementById('f-badge').value.trim() || null,
     hue: parseInt(document.getElementById('f-hue').value),
     blurb: document.getElementById('f-blurb').value.trim(),
+    carousel: document.getElementById('f-carousel').checked,
     goals: [...document.querySelectorAll('input[name="goal"]:checked')].map(x => x.value),
   };
   if (editId) D.products = D.products.map(p => p.id === editId ? product : p);
@@ -1503,6 +1811,20 @@ function saveProduct() {
     if (rows.length) {
       sbClient.from('stock').upsert(rows, { onConflict: 'product_id,variant' })
         .then(({ error }) => { if (error) toast('Stock no sincronizado: ' + error.message, true); else loadLiveStock(); });
+    }
+    // Costo PRIVADO a la tabla `costs` (nunca dentro del producto ni del catálogo público).
+    const costRows = presData
+      .filter(v => (v.price || 0) > 0)
+      .map(v => {
+        const variant = FF.variantLabel({ flavor: (v.flavor || '').trim(), size: (v.size || '').trim() }) || '';
+        return { product_id: product.id, variant, cost: Number(v.cost) || 0 };
+      });
+    if (costRows.length) {
+      sbClient.from('costs').upsert(costRows, { onConflict: 'product_id,variant' })
+        .then(({ error }) => {
+          if (error) toast('Costo no guardado: ' + error.message, true);
+          else costRows.forEach(r => { costMap[r.product_id + '|' + r.variant] = r.cost; });
+        });
     }
   }
 }
@@ -1668,6 +1990,51 @@ function renderTestimonios() {
   </tr>`).join('');
 }
 
+// ── RESEÑAS de clientes (Supabase, moderación) ─────────────────────────────────
+async function renderReviews() {
+  const tb = document.getElementById('reviews-tbody');
+  if (!tb) return;
+  let rows = [];
+  try {
+    const { data } = await sbClient.from('reviews').select('*').order('created_at', { ascending: false });
+    rows = data || [];
+  } catch (e) {}
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">⭐</div>Aún no hay reseñas enviadas por clientes.</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(r => `<tr>
+    <td class="td-main">${esc(r.nombre)}</td>
+    <td style="font-size:12px;color:var(--dim)">${esc(r.lugar || '—')}</td>
+    <td style="color:#eab308;white-space:nowrap">${'★'.repeat(Math.max(0, Math.min(5, r.rating || 0)))}</td>
+    <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"${esc(r.texto)}"</td>
+    <td>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" ${r.published ? 'checked' : ''} onchange="toggleReviewPublish('${esc(r.id)}', this.checked)"
+          style="width:16px;height:16px;accent-color:#a3e635;cursor:pointer" />
+        <span style="color:${r.published ? '#15803d' : 'var(--dim)'}">${r.published ? 'Publicada' : 'Pendiente'}</span>
+      </label>
+    </td>
+    <td><div class="actions"><button class="btn btn-sm btn-danger" onclick="deleteReview('${esc(r.id)}')">Eliminar</button></div></td>
+  </tr>`).join('');
+}
+async function toggleReviewPublish(id, val) {
+  try {
+    const { error } = await sbClient.from('reviews').update({ published: val }).eq('id', id);
+    if (error) throw error;
+    toast(val ? 'Reseña publicada ✓' : 'Reseña ocultada');
+  } catch (e) { toast('No se pudo actualizar: ' + (e.message || e), true); renderReviews(); }
+}
+async function deleteReview(id) {
+  if (!confirm('¿Eliminar esta reseña? No se puede deshacer.')) return;
+  try {
+    const { error } = await sbClient.from('reviews').delete().eq('id', id);
+    if (error) throw error;
+    toast('Reseña eliminada');
+    renderReviews();
+  } catch (e) { toast('No se pudo eliminar: ' + (e.message || e), true); }
+}
+
 function openTestim(idx) {
   const t = idx >= 0 ? D.testimonials[idx] : null;
   editType = 'testim'; editIdx = idx;
@@ -1730,9 +2097,33 @@ function renderAjustes() {
     </div>
   `).join('') || '<p style="color:var(--dim);font-size:13px">Sin ítems.</p>';
 
-  document.getElementById('cats-tbody').innerHTML = D.categories.map(c =>
-    `<tr><td style="font-family:var(--font-mono);font-size:12px">${esc(c.id)}</td><td>${esc(c.label)}</td></tr>`
-  ).join('');
+  document.getElementById('cats-tbody').innerHTML = D.categories.filter(c => c.id !== 'all').map(c => {
+    const count = D.products.filter(p => p.cat === c.id).length;
+    return `<tr>
+      <td style="font-family:var(--font-mono);font-size:12px">${esc(c.id)}</td>
+      <td>${esc(c.label)}</td>
+      <td>${count}</td>
+      <td><div class="actions">
+        <button class="btn btn-sm btn-ghost" onclick="renameCat('${esc(c.id)}')">Renombrar</button>
+        <button class="btn btn-sm btn-danger" onclick="delCat('${esc(c.id)}')">Eliminar</button>
+      </div></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="color:var(--dim)">Sin categorías. Añade una abajo.</td></tr>';
+
+  const goalsTb = document.getElementById('goals-tbody');
+  if (goalsTb) goalsTb.innerHTML = D.goals.map(g => {
+    const count = D.products.filter(p => (p.goals || []).includes(g.id)).length;
+    return `<tr>
+      <td><b>${esc(g.label)}</b></td>
+      <td style="color:var(--dim);font-size:13px">${esc(g.desc || '')}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${esc(g.icon || '')}</td>
+      <td>${count}</td>
+      <td><div class="actions">
+        <button class="btn btn-sm btn-ghost" onclick="openGoal('${esc(g.id)}')">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="delGoal('${esc(g.id)}')">Eliminar</button>
+      </div></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="color:var(--dim)">Sin objetivos. Añade uno.</td></tr>';
 
   const c = D.contact || {};
   const setv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
@@ -1792,6 +2183,107 @@ function addStat() {
   save(); renderAjustes();
 }
 
+// ── Categorías de productos ────────────────────────────────────────────────────
+function slugCat(label) {
+  const base = String(label).toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // quita acentos
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  let id = base || 'cat', n = 2;
+  while (D.categories.some(c => c.id === id)) id = base + '-' + (n++);
+  return id;
+}
+function addCat() {
+  const inp = document.getElementById('new-cat');
+  const label = inp.value.trim();
+  if (!label) return;
+  if (D.categories.some(c => c.label.toLowerCase() === label.toLowerCase())) {
+    toast('Ya existe una categoría con ese nombre', true); return;
+  }
+  D.categories.push({ id: slugCat(label), label });
+  inp.value = '';
+  save(); renderAjustes();
+  toast('Categoría añadida');
+}
+function renameCat(id) {
+  const c = D.categories.find(x => x.id === id);
+  if (!c) return;
+  const label = prompt('Nuevo nombre de la categoría:', c.label);
+  if (label == null) return;              // canceló
+  const v = label.trim();
+  if (!v) return;
+  c.label = v;                            // el id se conserva (los productos lo referencian)
+  save(); renderAjustes();
+  toast('Categoría renombrada');
+}
+function delCat(id) {
+  const inUse = D.products.filter(p => p.cat === id).length;
+  if (inUse) { toast(`No se puede borrar: ${inUse} producto(s) usan esta categoría. Reasígnalos primero.`, true); return; }
+  if (!confirm('¿Borrar esta categoría?')) return;
+  D.categories = D.categories.filter(c => c.id !== id);
+  save(); renderAjustes();
+  toast('Categoría eliminada');
+}
+
+// ── Objetivos (selector "¿Cuál es tu meta?") ────────────────────────────────────
+const GOAL_ICONS = ['muscle','flame','bolt','leaf','spark','heart','shield','star','check','truck','tag','package'];
+function slugGoal(label) {
+  const base = String(label).toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // quita acentos
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  let id = base || 'meta', n = 2;
+  while (D.goals.some(g => g.id === id)) id = base + '-' + (n++);
+  return id;
+}
+function openGoal(id) {
+  const g = id ? D.goals.find(x => x.id === id) : null;
+  editType = 'goal'; editId = id || null;
+  document.getElementById('panel-title').textContent = g ? 'Editar objetivo' : 'Nuevo objetivo';
+  const prods = D.products;
+  document.getElementById('panel-body').innerHTML = `
+    <div class="fg2">
+      <div class="fg"><label class="lbl">Nombre</label><input id="g-label" value="${esc(g?.label||'')}" placeholder="Ganar músculo" /></div>
+      <div class="fg"><label class="lbl">Ícono</label>
+        <select id="g-icon">${GOAL_ICONS.map(ic => `<option value="${ic}"${g?.icon===ic?' selected':''}>${ic}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="fg"><label class="lbl">Descripción corta</label><input id="g-desc" value="${esc(g?.desc||'')}" placeholder="Construir masa y fuerza" /></div>
+    <div class="fg"><label class="lbl">Productos de este objetivo</label>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:8px">Marca los productos que aparecerán cuando el cliente elija este objetivo.</p>
+      <div class="checks">${prods.length
+        ? prods.map(p => `<label class="chk-lbl"><input type="checkbox" name="goalprod" value="${esc(p.id)}"${(p.goals||[]).includes(id)?' checked':''} />${esc(p.name)}${p.flavor?` <span style="color:var(--dim)">· ${esc(p.flavor)}</span>`:''}</label>`).join('')
+        : '<span style="color:var(--dim);font-size:13px">No hay productos aún.</span>'}</div>
+    </div>
+  `;
+  openPanel();
+}
+function saveGoal() {
+  const label = document.getElementById('g-label').value.trim();
+  if (!label) { toast('El nombre del objetivo es obligatorio', true); return; }
+  const desc = document.getElementById('g-desc').value.trim();
+  const icon = document.getElementById('g-icon').value;
+  const gid = editId || slugGoal(label);
+  const goal = { id: gid, label, desc, icon };
+  if (editId) D.goals = D.goals.map(g => g.id === editId ? goal : g);
+  else D.goals.push(goal);
+  // Asignación de productos: los marcados obtienen este objetivo; los no marcados lo pierden.
+  const checked = new Set([...document.querySelectorAll('input[name="goalprod"]:checked')].map(x => x.value));
+  D.products.forEach(p => {
+    const has = (p.goals || []).includes(gid);
+    const want = checked.has(p.id);
+    if (want && !has) p.goals = [...(p.goals || []), gid];
+    else if (!want && has) p.goals = (p.goals || []).filter(x => x !== gid);
+  });
+  save(); closePanel(); renderAjustes();
+  toast('Objetivo guardado');
+}
+function delGoal(id) {
+  if (!confirm('¿Borrar este objetivo? Se quitará de los productos que lo tengan.')) return;
+  D.goals = D.goals.filter(g => g.id !== id);
+  D.products.forEach(p => { if (p.goals) p.goals = p.goals.filter(x => x !== id); });
+  save(); renderAjustes();
+  toast('Objetivo eliminado');
+}
+
 // ── Generic delete ─────────────────────────────────────────────────────────────
 function delById(type, id) {
   if (!confirm('¿Eliminar este elemento?')) return;
@@ -1816,6 +2308,7 @@ document.getElementById('panel-save').onclick = () => {
   else if (editType === 'pack') savePack();
   else if (editType === 'blog') saveBlog();
   else if (editType === 'testim') saveTestim();
+  else if (editType === 'goal') saveGoal();
 };
 
 // ── Event wiring ───────────────────────────────────────────────────────────────
@@ -1827,6 +2320,8 @@ document.getElementById('btn-add').onclick = () => {
 };
 document.getElementById('btn-add-stat').onclick = addStat;
 document.getElementById('new-stat').onkeydown = e => { if (e.key === 'Enter') addStat(); };
+const _newCatEl = document.getElementById('new-cat');
+if (_newCatEl) _newCatEl.onkeydown = e => { if (e.key === 'Enter') addCat(); };
 document.getElementById('btn-save-contact').onclick = saveContact;
 document.getElementById('btn-save-faq').onclick = saveFaq;
 document.getElementById('btn-add-faq').onclick = () => {
@@ -1887,24 +2382,28 @@ async function loadSbStats() {
     const localIds = new Set(D_orders.map(o => o.id));
     sbOrders.forEach(o => {
       if (!localIds.has(o.id)) {
-        D_orders.push({
+        D_orders.push(normalizeOrder({
           id: o.id, user_id: o.user_id,
           nombre: o.nombre, correo: o.correo, telefono: o.telefono,
           direccion: o.direccion, municipio: o.municipio, departamento: o.departamento,
           referencia: o.referencia,
           items: o.items || [], subtotal: o.subtotal, shipping: o.shipping, total: o.total,
           pago: o.pago, status: o.status || 'pendiente',
-          discount_code: o.discount_code,
+          discount_code: o.discount_code, discount_pct: o.discount_pct || 0,
           date: o.created_at,
-        });
+        }));
       }
     });
     D_orders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
   }
 
   // Cargar perfiles de usuarios (columnas reales: id, nombre, telefono, created_at)
-  const { data: profiles } = await sbClient
+  const { data: profiles, error: profErr } = await sbClient
     .from('profiles').select('id, nombre, telefono, created_at').order('created_at', { ascending: false });
+  if (profErr) {
+    console.warn('No se pudieron cargar los perfiles:', profErr.message);
+    toast('Usuarios no cargados: ' + profErr.message, true);
+  }
   sbProfiles = profiles || [];
 
   if (curTab === 'ventas') renderVentas();
@@ -2007,25 +2506,37 @@ function downloadFile(filename, content, mime) {
 function csvCell(v) { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 function csvRows(rows) { return rows.map(r => r.map(csvCell).join(',')).join('\r\n'); }
 
-// Agregados de ventas
+// Agregados de ventas (rentabilidad). Excluye cancelados de los montos.
 function ventasData() {
-  const orders = ordersInRange();
-  const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
-  const orderCount = orders.length;
-  const avgTicket = orderCount ? totalRevenue / orderCount : 0;
-  const units = orders.reduce((s, o) => s + (o.items || []).reduce((ss, it) => ss + (it.qty || 0), 0), 0);
+  const all = ordersInRange();
+  const orders = all.filter(countsAsSale);   // solo confirmado/enviado/entregado
+  const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);      // ingreso bruto (incl. envío)
+  const netSales     = orders.reduce((s, o) => s + orderNet(o), 0);          // venta neta (sin envío)
+  const shipping     = orders.reduce((s, o) => s + (o.shipping || 0), 0);    // envío cobrado
+  const cogs         = orders.reduce((s, o) => s + orderCOGS(o), 0);         // costo de producto
+  const grossProfit  = netSales - cogs;
+  const margin       = netSales > 0 ? (grossProfit / netSales) * 100 : null;
+  const orderCount   = orders.length;
+  const avgTicket    = orderCount ? netSales / orderCount : 0;
+  const units        = orders.reduce((s, o) => s + (o.items || []).reduce((ss, it) => ss + (it.qty || 0), 0), 0);
   const prod = {}, cat = {};
+  const missing = new Set();
   orders.forEach(o => (o.items || []).forEach(it => {
     const k = it.id || it.name;
-    if (!prod[k]) prod[k] = { name: it.name, cat: it.cat || '', units: 0, revenue: 0 };
+    const key = it.id + '|' + (it.flavor || '');
+    const c = costMap[key] || 0;
+    if (!(key in costMap)) missing.add(key);
+    if (!prod[k]) prod[k] = { name: it.name, cat: it.cat || '', units: 0, revenue: 0, cost: 0 };
     prod[k].units += it.qty || 0;
     prod[k].revenue += (it.price || 0) * (it.qty || 0);
-    const c = it.cat || 'otro';
-    cat[c] = (cat[c] || 0) + (it.price || 0) * (it.qty || 0);
+    prod[k].cost += c * (it.qty || 0);
+    const cc = it.cat || 'otro';
+    cat[cc] = (cat[cc] || 0) + (it.price || 0) * (it.qty || 0);
   }));
-  const products = Object.values(prod).sort((a, b) => b.revenue - a.revenue);
-  return { orders, totalRevenue, orderCount, avgTicket, units, products, cat };
+  const products = Object.values(prod).map(p => ({ ...p, profit: p.revenue - p.cost })).sort((a, b) => b.revenue - a.revenue);
+  return { orders, allCount: all.length, totalRevenue, netSales, shipping, cogs, grossProfit, margin, orderCount, avgTicket, units, products, cat, missingCount: missing.size };
 }
+function fmtMargin(m) { return m == null ? '—' : m.toFixed(1) + '%'; }
 
 function reportVentasCSV() {
   const d = ventasData();
@@ -2034,14 +2545,19 @@ function reportVentasCSV() {
     ['REPORTE DE VENTAS FITFUEL'],
     ['Período', repPeriodLabel()],
     [],
-    ['Ingresos totales', money(d.totalRevenue)],
+    ['Venta neta (sin envío)', money(d.netSales)],
+    ['Costo de producto (COGS)', money(d.cogs)],
+    ['Ganancia bruta', money(d.grossProfit)],
+    ['Margen', fmtMargin(d.margin)],
+    ['Envío cobrado', money(d.shipping)],
+    ['Ingreso bruto (incl. envío)', money(d.totalRevenue)],
     ['Pedidos', d.orderCount],
-    ['Ticket promedio', money(d.avgTicket)],
+    ['Ticket promedio (neto)', money(d.avgTicket)],
     ['Unidades vendidas', d.units],
-    [],
-    ['Producto', 'Categoría', 'Unidades', 'Ingresos'],
   ];
-  d.products.forEach(p => rows.push([p.name, catLabel(p.cat), p.units, money(p.revenue)]));
+  if (d.missingCount) rows.push([], ['⚠ Presentaciones vendidas sin costo capturado', d.missingCount, 'la ganancia puede estar incompleta']);
+  rows.push([], ['Producto', 'Categoría', 'Unidades', 'Ingresos', 'Costo', 'Ganancia', 'Margen']);
+  d.products.forEach(p => rows.push([p.name, catLabel(p.cat), p.units, money(p.revenue), money(p.cost), money(p.profit), fmtMargin(p.revenue > 0 ? (p.profit / p.revenue) * 100 : null)]));
   downloadFile(`fitfuel-ventas-${today()}.csv`, '﻿' + csvRows(rows), 'text/csv;charset=utf-8');
   toast('Reporte de ventas descargado');
 }
@@ -2049,13 +2565,68 @@ function reportVentasCSV() {
 function reportPedidosCSV() {
   const orders = ordersInRange();
   if (!orders.length) { toast('No hay pedidos en el período', true); return; }
-  const rows = [['ID', 'Fecha', 'Cliente', 'Teléfono', 'Correo', 'Departamento', 'Municipio', 'Dirección', 'Productos', 'Pago', 'Estado', 'Subtotal', 'Envío', 'Total']];
+  const rows = [['ID', 'Fecha', 'Cliente', 'Teléfono', 'Correo', 'Departamento', 'Municipio', 'Dirección', 'Productos', 'Pago', 'Estado', 'Subtotal', 'Envío', 'Total', 'Venta neta', 'COGS', 'Ganancia']];
   orders.forEach(o => {
     const prods = (o.items || []).map(it => `${it.qty}x ${it.name}${it.flavor ? ' (' + it.flavor + ')' : ''}`).join(' | ');
-    rows.push([o.id, fmtDate(o.date) + ' ' + fmtTime(o.date), o.nombre || '', o.telefono || '', o.correo || '', o.departamento || '', o.municipio || '', o.direccion || '', prods, o.pago || '', o.status || 'pendiente', o.subtotal || 0, o.shipping || 0, o.total || 0]);
+    const notSale = !countsAsSale(o);   // pendiente/cancelado no aportan montos
+    const net = notSale ? 0 : orderNet(o);
+    const cogs = notSale ? 0 : orderCOGS(o);
+    rows.push([o.id, fmtDate(o.date) + ' ' + fmtTime(o.date), o.nombre || '', o.telefono || '', o.correo || '', o.departamento || '', o.municipio || '', o.direccion || '', prods, o.pago || '', o.status || 'pendiente', o.subtotal || 0, o.shipping || 0, o.total || 0, net.toFixed(2), cogs.toFixed(2), (net - cogs).toFixed(2)]);
   });
   downloadFile(`fitfuel-pedidos-${today()}.csv`, '﻿' + csvRows(rows), 'text/csv;charset=utf-8');
   toast('Reporte de pedidos descargado');
+}
+
+// ── Reporte de entregas / logística (sin datos financieros internos) ──
+// Excluye pedidos cancelados. "A cobrar" = total solo si el pago es contra entrega.
+function toDeliver(o) { return (o.status || 'pendiente') !== 'cancelado'; }
+function toCollect(o) { return /contra entrega/i.test(o.pago || '') ? Number(o.total || 0) : 0; }
+
+function reportEntregasCSV() {
+  const orders = ordersInRange().filter(toDeliver);
+  if (!orders.length) { toast('No hay entregas en el período', true); return; }
+  const rows = [['ID', 'Fecha', 'Cliente', 'Teléfono', 'Departamento', 'Municipio', 'Dirección', 'Referencia', 'Productos', 'Pago', 'A cobrar (Q)', 'Estado']];
+  orders.forEach(o => {
+    const prods = (o.items || []).map(it => `${it.qty}x ${it.name}${it.flavor ? ' (' + it.flavor + ')' : ''}`).join(' | ');
+    const cobrar = toCollect(o);
+    rows.push([o.id, fmtDate(o.date) + ' ' + fmtTime(o.date), o.nombre || '', o.telefono || '', o.departamento || '', o.municipio || '', o.direccion || '', o.referencia || '', prods, o.pago || '', cobrar.toFixed(2), o.status || 'pendiente']);
+  });
+  downloadFile(`fitfuel-entregas-${today()}.csv`, '﻿' + csvRows(rows), 'text/csv;charset=utf-8');
+  toast('Reporte de entregas descargado');
+}
+
+function reportEntregasPDF() {
+  const orders = ordersInRange().filter(toDeliver);
+  if (!orders.length) { toast('No hay entregas en el período', true); return; }
+  const totalCobrar = orders.reduce((s, o) => s + toCollect(o), 0);
+  const cards = orders.map(o => {
+    const items = (o.items || []).map(it => `<li>${it.qty}× ${esc(it.name)}${it.flavor ? ' <span style="color:#6b7280">(' + esc(it.flavor) + ')</span>' : ''}</li>`).join('');
+    const cobrar = toCollect(o);
+    const pagoTag = cobrar
+      ? `<b style="color:#b45309">Cobrar Q${cobrar.toFixed(2)}</b>`
+      : `<span style="color:#059669">Pagado por transferencia</span>`;
+    return `<div class="ent-card">
+      <div class="ent-hd"><b>#${esc(o.id)}</b><span>${esc(fmtDate(o.date))} · ${esc(o.status || 'pendiente')}</span></div>
+      <div class="ent-name">${esc(o.nombre || '')} · ${esc(o.telefono || '')}</div>
+      <div class="ent-addr">${esc(o.direccion || '')}, ${esc(o.municipio || '')}, ${esc(o.departamento || '')}${o.referencia ? '<br><span style="color:#6b7280">Ref: ' + esc(o.referencia) + '</span>' : ''}</div>
+      <ul class="ent-items">${items}</ul>
+      <div class="ent-pay">${esc(o.pago || '')} — ${pagoTag}</div>
+    </div>`;
+  }).join('');
+  const body = `
+    <h1>Hoja de entregas</h1>
+    <div class="rep-sub">${orders.length} entrega(s) · Total a cobrar (contra entrega): <b>Q${totalCobrar.toFixed(2)}</b></div>
+    <style>
+      .ent-card{border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px;margin-top:14px;page-break-inside:avoid}
+      .ent-hd{display:flex;justify-content:space-between;font-size:13px;color:#6b7280;margin-bottom:6px}
+      .ent-hd b{color:#111827;font-size:15px}
+      .ent-name{font-weight:700;font-size:15px}
+      .ent-addr{font-size:14px;margin:4px 0 8px}
+      .ent-items{margin:0 0 8px 18px;font-size:13px}
+      .ent-pay{font-size:14px;border-top:1px dashed #e5e7eb;padding-top:8px}
+    </style>
+    ${cards}`;
+  openPrint('FITFUEL — Hoja de entregas', body);
 }
 
 // Abre ventana imprimible (el usuario elige "Guardar como PDF")
@@ -2096,19 +2667,26 @@ function reportVentasPDF() {
   if (!d.orderCount) { toast('No hay pedidos en el período', true); return; }
   let html = `<h1>Reporte de ventas</h1><div class="rep-sub">Período: ${esc(repPeriodLabel())}</div>`;
   html += `<div class="kpi-grid">
-    <div class="kpi"><div class="l">Ingresos</div><div class="v">${money(d.totalRevenue)}</div></div>
-    <div class="kpi"><div class="l">Pedidos</div><div class="v">${d.orderCount}</div></div>
-    <div class="kpi"><div class="l">Ticket prom.</div><div class="v">${money(d.avgTicket)}</div></div>
-    <div class="kpi"><div class="l">Unidades</div><div class="v">${d.units}</div></div>
+    <div class="kpi"><div class="l">Venta neta</div><div class="v">${money(d.netSales)}</div></div>
+    <div class="kpi"><div class="l">Ganancia bruta</div><div class="v">${money(d.grossProfit)}</div></div>
+    <div class="kpi"><div class="l">Margen</div><div class="v">${fmtMargin(d.margin)}</div></div>
+    <div class="kpi"><div class="l">Ingreso bruto</div><div class="v">${money(d.totalRevenue)}</div></div>
   </div>`;
+  html += `<div class="kpi-grid">
+    <div class="kpi"><div class="l">Costo (COGS)</div><div class="v">${money(d.cogs)}</div></div>
+    <div class="kpi"><div class="l">Envío cobrado</div><div class="v">${money(d.shipping)}</div></div>
+    <div class="kpi"><div class="l">Pedidos</div><div class="v">${d.orderCount}</div></div>
+    <div class="kpi"><div class="l">Ticket neto</div><div class="v">${money(d.avgTicket)}</div></div>
+  </div>`;
+  if (d.missingCount) html += `<div class="rep-sub" style="color:#c2410c;margin-bottom:8px">⚠ ${d.missingCount} presentación(es) vendida(s) sin costo capturado — la ganancia y el margen pueden estar incompletos.</div>`;
   const cats = Object.entries(d.cat).sort((a, b) => b[1] - a[1]);
   if (cats.length) {
     html += `<h3>Ingresos por categoría</h3><table><thead><tr><th>Categoría</th><th class="num">Ingresos</th></tr></thead><tbody>`;
     cats.forEach(([c, v]) => html += `<tr><td>${esc(catLabel(c))}</td><td class="num">${money(v)}</td></tr>`);
     html += `</tbody></table>`;
   }
-  html += `<h3>Top productos</h3><table><thead><tr><th>Producto</th><th>Categoría</th><th class="num">Uds.</th><th class="num">Ingresos</th></tr></thead><tbody>`;
-  d.products.slice(0, 25).forEach(p => html += `<tr><td>${esc(p.name)}</td><td>${esc(catLabel(p.cat))}</td><td class="num">${p.units}</td><td class="num">${money(p.revenue)}</td></tr>`);
+  html += `<h3>Top productos</h3><table><thead><tr><th>Producto</th><th>Categoría</th><th class="num">Uds.</th><th class="num">Ingresos</th><th class="num">Costo</th><th class="num">Ganancia</th></tr></thead><tbody>`;
+  d.products.slice(0, 25).forEach(p => html += `<tr><td>${esc(p.name)}</td><td>${esc(catLabel(p.cat))}</td><td class="num">${p.units}</td><td class="num">${money(p.revenue)}</td><td class="num">${money(p.cost)}</td><td class="num">${money(p.profit)}</td></tr>`);
   html += `</tbody></table>`;
   openPrint('Reporte de ventas FITFUEL', html);
 }
@@ -2117,7 +2695,9 @@ function reportPedidosPDF() {
   const orders = ordersInRange();
   if (!orders.length) { toast('No hay pedidos en el período', true); return; }
   const total = orders.reduce((s, o) => s + (o.total || 0), 0);
-  let html = `<h1>Reporte de pedidos</h1><div class="rep-sub">Período: ${esc(repPeriodLabel())} · ${orders.length} pedidos · ${money(total)}</div>`;
+  const valid = orders.filter(countsAsSale);
+  const profit = valid.reduce((s, o) => s + (orderNet(o) - orderCOGS(o)), 0);
+  let html = `<h1>Reporte de pedidos</h1><div class="rep-sub">Período: ${esc(repPeriodLabel())} · ${orders.length} pedidos · ${money(total)} bruto · ${money(profit)} ganancia</div>`;
   html += `<table style="margin-top:18px"><thead><tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Productos</th><th>Pago</th><th>Estado</th><th class="num">Total</th></tr></thead><tbody>`;
   orders.forEach(o => {
     const prods = (o.items || []).map(it => `${it.qty}× ${esc(it.name)}`).join('<br>');

@@ -20,9 +20,10 @@ alter table public.profiles add column if not exists is_admin boolean not null d
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email, full_name)
-  values (new.id, new.email,
-          coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'))
+  insert into public.profiles (id, nombre, telefono)
+  values (new.id,
+          coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'),
+          new.raw_user_meta_data->>'phone')
   on conflict (id) do nothing;
   return new;
 end; $$;
@@ -33,12 +34,15 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 -- ── Backfill: crear perfiles faltantes de usuarios ya registrados ───────────
-insert into public.profiles (id, email, full_name)
-select u.id, u.email,
-       coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name')
+insert into public.profiles (id, nombre, telefono, created_at)
+select u.id,
+       coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name'),
+       u.raw_user_meta_data->>'phone',
+       u.created_at
 from auth.users u
 left join public.profiles p on p.id = u.id
-where p.id is null;
+where p.id is null
+on conflict (id) do nothing;
 
 -- ── Helper is_admin() (security definer: evita recursión de RLS) ────────────
 create or replace function public.is_admin()
@@ -87,8 +91,10 @@ create policy "catalog_update_admin" on storage.objects
   with check (bucket_id = 'catalog' and public.is_admin());
 ```
 
-> Si tu tabla `profiles` usa nombres de columna distintos a `email` / `full_name`, ajusta
-> el trigger y el backfill.
+> La tabla `profiles` de este proyecto usa las columnas `id`, `nombre`, `telefono`,
+> `created_at`, `is_admin` (no tiene `email` ni `full_name`). Si en tu base cambian,
+> ajusta el trigger y el backfill. El nombre se toma de `full_name`/`name` del metadata
+> del usuario (lo que Google devuelve al iniciar sesión).
 
 ## 2. Crear el usuario admin (si no existe)
 - Opción A: en el sitio, **Crear cuenta** con tu correo y confirma el email.
@@ -97,7 +103,7 @@ create policy "catalog_update_admin" on storage.objects
 ## 3. Marcarte como admin
 ```sql
 update public.profiles set is_admin = true
-where email = 'hugoaledelvallec@gmail.com';   -- cambia/añade los correos admin
+where id = (select id from auth.users where email = 'hugoaledelvallec@gmail.com');  -- cambia el correo admin
 ```
 Para varios admins, repite el `update` con cada correo (todos deben existir en Auth).
 

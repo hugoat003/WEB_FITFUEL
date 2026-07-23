@@ -13,6 +13,10 @@ dist/
 # Temporales
 *.log
 scratchpad/
+.wrangler/
+
+# Fotos fuente sin optimizar (no las usa el sitio; se optimizan a public/img/*.webp)
+Imagenes productos/
 
 # Herramientas de Claude Code (no son parte del proyecto)
 .claude/

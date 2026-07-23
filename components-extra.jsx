@@ -49,7 +49,15 @@ function Bundles({ onAddBundle, compact = false }) {
 }
 
 function Testimonials({ compact = false }) {
-  const published = FF.TESTIMONIALS.filter((t) => t._published);
+  const [dbReviews, setDbReviews] = React.useState([]);
+  React.useEffect(() => {
+    let alive = true;
+    sb.from("reviews").select("nombre,lugar,texto,hue").eq("published", true)
+      .order("created_at", { ascending: false }).limit(compact ? 6 : 60)
+      .then(({ data }) => { if (alive && data) setDbReviews(data.map((r) => ({ name: r.nombre, tag: r.lugar, quote: r.texto, hue: r.hue }))); });
+    return () => { alive = false; };
+  }, [compact]);
+  const published = [...dbReviews, ...FF.TESTIMONIALS.filter((t) => t._published)];
   if (published.length === 0) return null;
   return (
     <section className="section" id="reseñas">
@@ -233,12 +241,11 @@ function Footer() {
               <img src="/logo-full.png" alt="FITFUEL" className="logo-png" />
             </a>
             <p style={{ color: "var(--text-dim)", maxWidth: 280, fontSize: 15 }}>
-              Suplementos deportivos testados en laboratorio. Sin atajos, sin azúcares ocultos. Hecho para Guatemala.
+              Suplementos deportivos testeados en laboratorio. Sin atajos, sin azúcares ocultos. Hecho para Guatemala.
             </p>
             <div className="foot-contact">
-              <a href={"tel:" + (c.phone || "").replace(/\s/g, "")}><Icon name="phone" size={15} /> {c.phone}</a>
-              <a href={c.whatsappLink || "#"} target="_blank" rel="noopener"><Icon name="chat" size={15} /> WhatsApp</a>
-              {/* <span><Icon name="pin" size={15} /> {c.city}</span> */}
+              <a href={"mailto:" + c.email}><Icon name="mail" size={15} /> {c.email}</a>
+              {c.whatsapp && <a href={c.whatsappLink || "#"} target="_blank" rel="noopener"><Icon name="chat" size={15} /> WhatsApp</a>}
             </div>
           </div>
           {FOOT_COLS.map((col) => (
@@ -249,7 +256,12 @@ function Footer() {
           ))}
         </div>
         <div className="foot-bottom">
-          <span>© 2026 FITFUEL Guatemala. Demo de diseño — no es una tienda real.</span>
+          <span>© 2026 FITFUEL Guatemala · Todos los derechos reservados.</span>
+          <span className="foot-legal" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <a href="#/privacidad" style={{ color: "inherit" }}>Privacidad</a>
+            <a href="#/terminos" style={{ color: "inherit" }}>Términos</a>
+            <a href="#/cookies" style={{ color: "inherit" }}>Cookies</a>
+          </span>
           <span>Hecho para rendir</span>
         </div>
       </div>

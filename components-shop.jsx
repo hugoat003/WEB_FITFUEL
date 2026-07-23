@@ -90,11 +90,14 @@ function Marquee() {
 }
 
 function Hero() {
-  // Carrusel de productos destacados: rota solo cada 3 s con animación.
-  const slides = React.useMemo(
-    () => FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 5),
-    []
-  );
+  // Carrusel de productos destacados: primero los marcados en el admin ("carousel"),
+  // en el orden del catálogo. Si no hay ninguno marcado, cae al automático (más reseñas).
+  const slides = React.useMemo(() => {
+    const picked = FF.PRODUCTS.filter((p) => p.carousel);
+    return picked.length
+      ? picked
+      : FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 5);
+  }, []);
   const [idx, setIdx] = React.useState(0);
   const total = slides.length;
   const go = (i) => setIdx(((i % total) + total) % total);
@@ -114,7 +117,7 @@ function Hero() {
       <div className="ff-wrap ehero-grid">
         <div className="ehero-copy">
           <div className="ehero-copy-slide" key={"c" + idx}>
-            <div className="ehero-eyebrow"><span className="ehero-dash" />{cat ? cat.label : "Destacado"} · Guatemala</div>
+            <div className="ehero-eyebrow"><span className="ehero-dash" />{cat ? cat.label : "Destacado"}</div>
             <h1 className="ehero-title">{p.name}</h1>
             <p className="ehero-sub">{p.blurb || p.flavor}</p>
             <div className="ehero-price-row">
@@ -225,7 +228,6 @@ function ProductCard({ p, onAdd, onQuick, fav, toggleFav }) {
           {varsLabel && <span className="pcard-vars">{varsLabel}</span>}
           {low && <span className="pcard-low">Últimas unidades</span>}
         </p>
-        <Stars rating={p.rating} reviews={null} />
         <div className="pcard-foot">
           <div className="price">
             <b>{money(p.price)}</b>
@@ -370,7 +372,6 @@ function QuickView({ product, onClose, onAdd }) {
               ))}
             </div>
           )}
-          <div style={{ margin: "10px 0" }}><Stars rating={product.rating} reviews={product.reviews} /></div>
           <p style={{ color: "var(--text-dim)", margin: "6px 0 0" }}>{product.blurb}</p>
           <div className="modal-facts">
             {qvFacts.map(([k, v], i) => (

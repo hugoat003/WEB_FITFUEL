@@ -158,9 +158,18 @@
 .pcard {
   position: relative; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r-lg); overflow: hidden; transition: .25s var(--ease); display: flex; flex-direction: column;
+  min-width: 0;  /* permite encoger en la grilla; evita que el contenido fuerce overflow en iOS */
 }
 .pcard:hover { transform: translateY(-6px); border-color: var(--border-2); box-shadow: 0 24px 50px -20px rgba(0,0,0,.45); }
 .pcard-vis { position: relative; aspect-ratio: 1/1; padding: 16px; }
+/* El <a> que envuelve la imagen se posiciona en absoluto ocupando el área de
+   contenido (inset = padding). Así su ancho y alto quedan DEFINIDOS por el
+   contenedor cuadrado; iOS Safari ya no puede caer en la proporción intrínseca
+   del <img> (que dejaba una franja vacía a la derecha con el corazón flotando). */
+.pcard-link { position: absolute; inset: 16px; display: block; border-radius: var(--r-md); overflow: hidden;
+  /* Tono oscuro detrás de la imagen (las fotos reales van con fondo transparente,
+     así que este degradado se ve a través y da el "well" oscuro tipo placeholder). */
+  background: radial-gradient(120% 85% at 50% 10%, rgba(255,255,255,.05), transparent 55%), var(--surface-2); }
 .pcard-vis .ph { border-radius: var(--r-md); }
 .pcard-badge {
   position: absolute; top: 16px; left: 16px; z-index: 2; font-family: var(--font-mono);
@@ -169,7 +178,9 @@
 }
 .pcard-fav {
   position: absolute; top: 14px; right: 14px; z-index: 2; width: 36px; height: 36px; border-radius: 100px;
-  background: oklch(from var(--bg) l c h / .6); backdrop-filter: blur(6px); display: grid; place-items: center;
+  /* Fondo sólido (sin backdrop-filter): iOS Safari recorta mal los backdrop-filter
+     dentro de tarjetas con overflow:hidden + esquinas redondeadas. */
+  background: rgba(22, 19, 15, 0.72); display: grid; place-items: center;
   color: var(--text-dim); transition: .2s; border: 1px solid var(--border);
 }
 .pcard-fav:hover, .pcard-fav.on { color: var(--accent); }
@@ -284,7 +295,7 @@
 .drawer-head h3 { font-family: var(--font-display); font-size: 24px; text-transform: uppercase; letter-spacing: -0.02em; margin: 0; }
 .drawer-body { flex: 1; overflow-y: auto; padding: 16px 22px; display: flex; flex-direction: column; gap: 14px; }
 .citem { display: flex; gap: 14px; }
-.citem-vis { width: 72px; height: 72px; border-radius: var(--r-sm); flex: none; }
+.citem-vis { display: block; width: 72px; height: 72px; border-radius: var(--r-sm); flex: none; }
 .citem-main { flex: 1; min-width: 0; }
 .citem-main b { font-size: 15px; display: block; }
 .citem-main span { font-size: 13px; color: var(--text-dim); }
@@ -340,5 +351,11 @@
 }
 @media (max-width: 520px) {
   .pgrid { grid-template-columns: 1fr 1fr; gap: 12px; }
-  .goals-grid { grid-template-columns: 1fr; }
+  /* Objetivos: 2 por fila y más compactos (antes eran tarjetas enormes a todo el ancho) */
+  .goals-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .goal-card { padding: 14px; }
+  .goal-ico { width: 38px; height: 38px; border-radius: 11px; margin-bottom: 10px; }
+  .goal-card h4 { font-size: 15px; }
+  .goal-card p { font-size: 12px; }
+  .goal-check { top: 10px; right: 10px; }
 }

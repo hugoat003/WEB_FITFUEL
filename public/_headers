@@ -1,0 +1,17 @@
+# FITFUEL — Cabeceras de seguridad (Cloudflare Pages)
+# Este archivo se sirve desde la raíz del deploy (dist/_headers).
+#
+# La CSP va en modo REPORT-ONLY: NO bloquea nada, solo reporta violaciones en la consola
+# del navegador (F12 → Console). Es intencional para no arriesgar la tienda en vivo.
+# ▸ Cómo activarla de verdad: prueba en un preview (o producción) haciendo login, agregar al
+#   carrito, checkout, y en el panel: login, publicar catálogo y moderar una reseña, mirando la
+#   consola. Si NO aparecen errores rojos de "Content Security Policy", cambia el nombre de la
+#   cabecera de `Content-Security-Policy-Report-Only` a `Content-Security-Policy` para forzarla.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.web3forms.com https://api.emailjs.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://*.supabase.co; upgrade-insecure-requests

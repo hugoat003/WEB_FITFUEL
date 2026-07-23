@@ -28,6 +28,9 @@ const PAGE_TITLES = {
   nosotros: "Sobre nosotros — FITFUEL",
   calidad: "Calidad — FITFUEL",
   afiliados: "Afiliados — FITFUEL",
+  privacidad: "Aviso de privacidad — FITFUEL",
+  terminos: "Términos y condiciones — FITFUEL",
+  cookies: "Política de cookies — FITFUEL",
 };
 
 const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
@@ -77,7 +80,10 @@ function renderPage(route, ctx) {
     }
     case "nosotros":
     case "calidad":
-    case "afiliados": {
+    case "afiliados":
+    case "privacidad":
+    case "terminos":
+    case "cookies": {
       const data = INFO_PAGES[seg];
       return data ? <ContentPage data={data} ctx={ctx} /> : <NotFoundPage />;
     }
@@ -99,6 +105,7 @@ function App() {
   const [user, setUser] = React.useState(null);
   const [authOpen, setAuthOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const [recoveryOpen, setRecoveryOpen] = React.useState(false);
   const [promoBanner, setPromoBanner] = React.useState(false);
   React.useEffect(() => {
     const dismissedAt = Number(load("ff_promo_dismissed", 0));
@@ -113,11 +120,33 @@ function App() {
 
   React.useEffect(() => {
     sb.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_e, session) => {
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "PASSWORD_RECOVERY") setRecoveryOpen(true); // volvió del enlace de recuperación
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Favoritos sincronizados con la cuenta: al iniciar sesión, carga los de Supabase, sube los
+  // que el usuario marcó como invitado (merge) y unifica. localStorage queda solo como caché.
+  React.useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      const { data } = await sb.from("favorites").select("product_id").eq("user_id", user.id);
+      if (!alive) return;
+      const remote = new Set((data || []).map((r) => r.product_id));
+      const localOnly = [...favs].filter((id) => !remote.has(id));
+      if (localOnly.length) {
+        sb.from("favorites").upsert(localOnly.map((id) => ({ user_id: user.id, product_id: id })),
+          { onConflict: "user_id,product_id" }).then(() => {});
+        localOnly.forEach((id) => remote.add(id));
+      }
+      setFavs((prev) => { const n = new Set(prev); remote.forEach((id) => n.add(id)); return n; });
+    })();
+    return () => { alive = false; };
+  }, [user]);
+
   const toastId = React.useRef(0);
 
   React.useEffect(() => {
@@ -196,7 +225,16 @@ function App() {
     !(x.id === id && (x.vf ?? null) === vf)
   ));
 
-  const toggleFav = (id) => setFavs((f) => { const n = new Set(f); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleFav = (id) => setFavs((f) => {
+    const n = new Set(f); const had = n.has(id);
+    had ? n.delete(id) : n.add(id);
+    // Persistir en la cuenta si hay sesión (fire-and-forget; localStorage sigue como caché).
+    if (user) {
+      if (had) sb.from("favorites").delete().eq("user_id", user.id).eq("product_id", id).then(() => {});
+      else sb.from("favorites").upsert({ user_id: user.id, product_id: id }, { onConflict: "user_id,product_id" }).then(() => {});
+    }
+    return n;
+  });
   const toggleGoal = (id) => setGoals((g) => { const n = new Set(g); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // Limpia items cuyo id ya no existe, o cuya presentación (vf) ya no coincide con
@@ -303,6 +341,7 @@ function App() {
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
       {userMenuOpen && user && <UserMenu user={user} onClose={() => setUserMenuOpen(false)} />}
+      {recoveryOpen && <ResetPasswordModal onClose={() => setRecoveryOpen(false)} />}
 
       <div className="toasts">
         {toasts.map((x) => (

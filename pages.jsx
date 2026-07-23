@@ -3,38 +3,17 @@ import React from "react";
 
 const WEB3FORMS_KEY = "c56569ba-3baa-462d-a849-1d6585e39ad6";
 
-// ── EmailJS — confirmación automática al cliente ────────────────────────────
-const EMAILJS_SERVICE_ID  = "service_yqntdgr";
-const EMAILJS_TEMPLATE_ID = "template_58by5up";
-const EMAILJS_PUBLIC_KEY  = "YuGA3cDVuq7MODG4T";
-
-async function sendClientConfirmation({ nombre, correo, id, date, items, subtotal, shipping, total, direccion, municipio, departamento, telefono, pago }) {
-  if (!EMAILJS_TEMPLATE_ID || !correo) return;
-  const itemLines = items.map((it) => `${it.qty}× ${it.name} (${it.flavor}) — Q${(it.price * it.qty).toFixed(2)}`).join("\n");
-  const orderDetails =
-    `Pedido: #${id}\nFecha: ${date}\n\n` +
-    `PRODUCTOS:\n${itemLines}\n\n` +
-    `Subtotal: Q${subtotal.toFixed(2)}\n` +
-    `Envío: ${shipping === 0 ? "Gratis" : "Q" + shipping.toFixed(2)}\n` +
-    `TOTAL: Q${total.toFixed(2)}\n\n` +
-    `ENTREGA:\n${direccion}, ${municipio}, ${departamento}\nTel: ${telefono}\nPago: ${pago}`;
-
-  await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+// ── Confirmación automática al cliente ──────────────────────────────────────
+// El correo se arma y envía en el servidor, en una Cloudflare Pages Function
+// (functions/api/order-confirmation.js) que usa Resend con la API key como secreto.
+// Así el correo sale desde el dominio propio (pedidos@fitfuelgt.com) y la clave
+// nunca llega al navegador. El diseño HTML del correo vive en esa función.
+async function sendClientConfirmation(orderData) {
+  if (!orderData || !orderData.correo) return;
+  await fetch("/api/order-confirmation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      service_id: EMAILJS_SERVICE_ID,
-      template_id: EMAILJS_TEMPLATE_ID,
-      user_id: EMAILJS_PUBLIC_KEY,
-      template_params: {
-        to_email: correo,
-        to_name: nombre,
-        order_id: id,
-        order_details: orderDetails,
-        name: nombre,   // el saludo de la plantilla usa {{name}}
-        message: "",    // se envía vacío: el bloque de detalles ya va en {{order_details}} (evita duplicado)
-      },
-    }),
+    body: JSON.stringify(orderData),
   });
 }
 
@@ -65,19 +44,20 @@ function PageHead({ eyebrow, title, sub }) {
 
 /* ---------------- HOME ---------------- */
 function HomePage({ ctx }) {
-  // Ordena por unidades reales vendidas; si no hay pedidos aún, usa reseñas como fallback
-  const featured = React.useMemo(() => {
-    try {
-      const orders = JSON.parse(localStorage.getItem("ff_orders") || "[]");
-      if (orders.length === 0) throw new Error("sin pedidos");
+  // "Más vendidos" desde ventas reales y COMPARTIDAS (RPC público top_products, agregado y sin
+  // datos personales). Fallback a reseñas si el RPC aún no existe o no hay ventas. Nunca localStorage.
+  const [featured, setFeatured] = React.useState(
+    () => FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 4)
+  );
+  React.useEffect(() => {
+    let alive = true;
+    sb.rpc("top_products", { p_limit: 12 }).then(({ data }) => {
+      if (!alive || !Array.isArray(data) || !data.length) return;
       const units = {};
-      orders.forEach((o) => (o.items || []).forEach((it) => { units[it.id] = (units[it.id] || 0) + it.qty; }));
-      return FF.PRODUCTS.slice()
-        .sort((a, b) => (units[b.id] || 0) - (units[a.id] || 0))
-        .slice(0, 4);
-    } catch {
-      return FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 4);
-    }
+      data.forEach((r) => { units[r.product_id] = Number(r.units) || 0; });
+      setFeatured(FF.PRODUCTS.slice().sort((a, b) => (units[b.id] || 0) - (units[a.id] || 0)).slice(0, 4));
+    }).catch(() => {});
+    return () => { alive = false; };
   }, []);
   const cats = FF.CATEGORIES.filter((c) => c.id !== "all");
   const catHues = [92, 200, 350, 150, 30, 270];
@@ -88,9 +68,9 @@ function HomePage({ ctx }) {
       {/* Franja de beneficios */}
       <section className="ebens">
         <div className="ff-wrap ebens-grid">
-          <div className="eben"><span className="eben-n">01</span><div><div className="eben-h">Envío gratis</div><div className="eben-p">En pedidos desde {money(FF.FREE_SHIP)}</div></div></div>
-          <div className="eben"><span className="eben-n">02</span><div><div className="eben-h">Entrega 24–48h</div><div className="eben-p">En toda Guatemala</div></div></div>
-          <div className="eben"><span className="eben-n">03</span><div><div className="eben-h">Calidad certificada</div><div className="eben-p">Testado en laboratorio</div></div></div>
+          <div className="eben"><div><div className="eben-h">Envío gratis</div><div className="eben-p">En pedidos desde {money(FF.FREE_SHIP)}</div></div></div>
+          <div className="eben"><div><div className="eben-h">Entrega 24–48h</div><div className="eben-p">En toda Guatemala</div></div></div>
+          <div className="eben"><div><div className="eben-h">Calidad certificada</div><div className="eben-p">Testeado en laboratorio</div></div></div>
         </div>
       </section>
 
@@ -227,6 +207,9 @@ function ProductPage({ ctx, route }) {
   if (!p) return <NotFoundPage msg="No encontramos ese producto." />;
   const cat = FF.CATEGORIES.find((c) => c.id === p.cat);
   const related = FF.PRODUCTS.filter((x) => x.cat === p.cat && x.id !== p.id).slice(0, 3);
+  // Presentaciones vendidas como productos separados (mismo `group`): el selector de
+  // Tamaño navega entre ellas. Ordenadas por precio (menor primero).
+  const groupSiblings = p.group ? FF.PRODUCTS.filter((x) => x.group === p.group).sort((a, b) => (a.price || 0) - (b.price || 0)) : [];
 
   // ── Presentaciones (SKU): sabor + tamaño, cada uno con precio/galería/nutrición ──
   const vs = FF.variantsOf(p);
@@ -312,6 +295,24 @@ function ProductPage({ ctx, route }) {
                       {sizesForFlavor.map((s, i) => (
                         <button key={i} className={"dp-opt" + (s === cur.size ? " on" : "")}
                           onClick={() => onSize(s)}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tamaño entre productos separados del mismo grupo (navega al otro producto) */}
+              {groupSiblings.length >= 2 && (
+                <div className="dp-block">
+                  <span className="dp-block-n dp-mono">{String(1 + (flavors.length >= 2 ? 1 : 0) + (sizesForFlavor.length >= 2 ? 1 : 0)).padStart(2, "0")}</span>
+                  <div className="dp-block-body">
+                    <div className="dp-block-lbl dp-mono">Tamaño</div>
+                    <div className="dp-opts">
+                      {groupSiblings.map((sib) => (
+                        <button key={sib.id} className={"dp-opt" + (sib.id === p.id ? " on" : "")}
+                          onClick={() => { if (sib.id !== p.id) navigate("/producto/" + sib.id); }}>
+                          {sib.sizeLabel || sib.flavor}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -484,23 +485,26 @@ function ProductPage({ ctx, route }) {
             <div>
               <h2 className="dp-foot-h2 dp-arch">Hablemos <span className="out">contigo</span></h2>
               <div className="dp-foot-rows">
-                <div className="dp-foot-row">
-                  <span className="n dp-mono">01</span>
-                  <div><div className="k dp-mono">Teléfono</div><a className="v" href={"tel:" + (c.phone || "").replace(/\s/g, "")}>{c.phone}</a></div>
-                </div>
-                <div className="dp-foot-row">
-                  <span className="n dp-mono">02</span>
-                  <div><div className="k dp-mono">WhatsApp</div><a className="v" href={c.whatsappLink || "#"} target="_blank" rel="noopener">Escríbenos</a></div>
-                </div>
-                <div className="dp-foot-row">
-                  <span className="n dp-mono">03</span>
-                  <div><div className="k dp-mono">Ubicación</div><div className="v">{c.city || "Guatemala"}</div></div>
-                </div>
+                {[
+                  { k: "Correo", v: c.email, href: "mailto:" + c.email },
+                  ...(c.whatsapp ? [{ k: "WhatsApp", v: "Escríbenos", href: c.whatsappLink || "#", ext: true }] : []),
+                  { k: "Tienda", v: "En línea · " + (c.city || "Guatemala") },
+                ].map((row, i) => (
+                  <div className="dp-foot-row" key={row.k}>
+                    <span className="n dp-mono">{String(i + 1).padStart(2, "0")}</span>
+                    <div>
+                      <div className="k dp-mono">{row.k}</div>
+                      {row.href
+                        ? <a className="v" href={row.href} {...(row.ext ? { target: "_blank", rel: "noopener" } : {})}>{row.v}</a>
+                        : <div className="v">{row.v}</div>}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
           <div className="dp-foot-bottom">
-            <div className="sm dp-mono">Política de privacidad<br />Términos y condiciones</div>
+            <div className="sm dp-mono"><a href="#/privacidad" style={{ color: "inherit" }}>Política de privacidad</a><br /><a href="#/terminos" style={{ color: "inherit" }}>Términos y condiciones</a></div>
             <div className="sm dp-mono">© 2026 FITFUEL</div>
             <a href="#top" className="dp-round" aria-label="Volver arriba"><Icon name="arrow" size={16} style={{ transform: "rotate(-90deg)" }} /></a>
             <span className="dp-foot-brand">FITFUEL</span>
@@ -583,35 +587,40 @@ function ReviewForm({ ctx }) {
   const [checkEmail, setCheckEmail] = React.useState("");
   const [verifyErr, setVerifyErr] = React.useState("");
   const [verifiedOrder, setVerifiedOrder] = React.useState(null);
+  const [verifying, setVerifying] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
 
-  const verifyPurchase = (e) => {
+  const verifyPurchase = async (e) => {
     e.preventDefault();
     const email = checkEmail.trim().toLowerCase();
     if (!email) return;
-    try {
-      const orders = JSON.parse(localStorage.getItem("ff_orders") || "[]");
-      const found = orders.find((o) => (o.correo || "").toLowerCase() === email);
-      if (found) { setVerifiedOrder(found); setStep("form"); setVerifyErr(""); }
-      else setVerifyErr("No encontramos ningún pedido con ese correo. Solo clientes que han comprado pueden dejar una reseña.");
-    } catch { setVerifyErr("Error al verificar. Intenta de nuevo."); }
+    // Rate limit anti-enumeración de correos.
+    const rl = rateLimit("ff_rl_review", 6, 10 * 60 * 1000);
+    if (!rl.ok) { setVerifyErr(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); return; }
+    setVerifying(true); setVerifyErr("");
+    // Verifica contra los pedidos REALES en Supabase (RPC que solo devuelve el id del último
+    // pedido de ese correo, sin exponer datos). Antes usaba localStorage (per-dispositivo, falso).
+    const { data, error } = await sb.rpc("last_order_for_email", { p_email: email });
+    setVerifying(false);
+    if (error) { setVerifyErr("No pudimos verificar ahora. Intenta de nuevo."); return; }
+    if (data) { setVerifiedOrder({ id: data, correo: email }); setStep("form"); setVerifyErr(""); }
+    else setVerifyErr("No encontramos ningún pedido con ese correo. Solo clientes que han comprado pueden dejar una reseña.");
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    if (sending) return;
     const f = new FormData(e.target);
     const g = (k) => (f.get(k) || "").toString().trim();
-    const msg =
-      `*Nueva reseña FITFUEL — compra verificada*\n\n` +
-      `Nombre: ${g("nombre")}\n` +
-      (g("lugar") ? `Lugar: ${g("lugar")}\n` : "") +
-      `Correo: ${checkEmail}\n` +
-      `Pedido ref.: #${verifiedOrder?.id || "—"}\n` +
-      `Valoración: ${g("rating")}/5\n\n` +
-      `"${g("comentario")}"`;
-    const c = FF.CONTACT || {};
-    const digits = (c.whatsapp || "").replace(/[^0-9]/g, "");
-    if (digits) window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, "_blank");
-    else if (c.email) window.open(`mailto:${c.email}?subject=Reseña verificada FITFUEL&body=${encodeURIComponent(msg)}`, "_blank");
+    setSending(true);
+    // Se guarda PENDIENTE (published=false por defecto) para que el admin la modere.
+    const { error } = await sb.from("reviews").insert({
+      nombre: g("nombre"), lugar: g("lugar") || null,
+      rating: parseInt(g("rating")) || 5, texto: g("comentario"),
+      order_id: verifiedOrder?.id || null, hue: Math.floor(Math.random() * 360),
+    });
+    setSending(false);
+    if (error) { ctx && ctx.toast && ctx.toast("No se pudo enviar la reseña. Intenta de nuevo."); return; }
     setStep("sent");
     ctx && ctx.toast && ctx.toast("¡Gracias por tu reseña! ✦");
   };
@@ -639,7 +648,7 @@ function ReviewForm({ ctx }) {
             placeholder="correo@ejemplo.com" />
         </label>
         {verifyErr && <p style={{ color: "var(--danger, #ef4444)", fontSize: 13, marginTop: 4 }}>{verifyErr}</p>}
-        <button className="btn btn-primary btn-block" type="submit">Verificar compra <Icon name="arrow" size={18} /></button>
+        <button className="btn btn-primary btn-block" type="submit" disabled={verifying}>{verifying ? "Verificando…" : <>Verificar compra <Icon name="arrow" size={18} /></>}</button>
       </form>
     );
   }
@@ -663,14 +672,22 @@ function ReviewForm({ ctx }) {
         </select>
       </label>
       <label>Tu experiencia<textarea required name="comentario" rows="4" placeholder="Cuéntanos cómo te fue con el producto…" /></label>
-      <button className="btn btn-primary btn-block" type="submit">Enviar reseña <Icon name="arrow" size={18} /></button>
+      <button className="btn btn-primary btn-block" type="submit" disabled={sending}>{sending ? "Enviando…" : <>Enviar reseña <Icon name="arrow" size={18} /></>}</button>
       <p className="co-disclaimer">Tu reseña llega al equipo de FITFUEL y será publicada manualmente si cumple con nuestras normas.</p>
     </form>
   );
 }
 
 function ReviewsPage({ ctx }) {
-  const published = FF.TESTIMONIALS.filter((t) => t._published);
+  const [dbReviews, setDbReviews] = React.useState([]);
+  React.useEffect(() => {
+    let alive = true;
+    sb.from("reviews").select("nombre,lugar,texto,hue").eq("published", true)
+      .order("created_at", { ascending: false }).limit(60)
+      .then(({ data }) => { if (alive && data) setDbReviews(data.map((r) => ({ name: r.nombre, tag: r.lugar, quote: r.texto, hue: r.hue }))); });
+    return () => { alive = false; };
+  }, []);
+  const published = [...dbReviews, ...FF.TESTIMONIALS.filter((t) => t._published)];
   return (
     <section className="page">
       <div className="ff-wrap">
@@ -751,18 +768,26 @@ function ContactPage({ ctx }) {
           sub="¿Dudas con tu pedido o con qué suplemento elegir? Escríbenos." />
         <div className="contact-grid">
           <div className="contact-info">
-            <a className="contact-row" href={c.whatsappLink || "#"} target="_blank" rel="noopener">
-              <span className="ci-ic"><Icon name="chat" size={20} /></span>
-              <div><b>WhatsApp</b><span>{c.whatsapp}</span></div>
-            </a>
-            <a className="contact-row" href={"tel:" + (c.phone || "").replace(/\s/g, "")}>
-              <span className="ci-ic"><Icon name="phone" size={20} /></span>
-              <div><b>Teléfono</b><span>{c.phone}</span></div>
-            </a>
+            {c.whatsapp && (
+              <a className="contact-row" href={c.whatsappLink || "#"} target="_blank" rel="noopener">
+                <span className="ci-ic"><Icon name="chat" size={20} /></span>
+                <div><b>WhatsApp</b><span>{c.whatsapp}</span></div>
+              </a>
+            )}
+            {c.phone && (
+              <a className="contact-row" href={"tel:" + c.phone.replace(/\s/g, "")}>
+                <span className="ci-ic"><Icon name="phone" size={20} /></span>
+                <div><b>Teléfono</b><span>{c.phone}</span></div>
+              </a>
+            )}
             <a className="contact-row" href={"mailto:" + c.email}>
               <span className="ci-ic"><Icon name="mail" size={20} /></span>
               <div><b>Correo</b><span>{c.email}</span></div>
             </a>
+            <div className="contact-row">
+              <span className="ci-ic"><Icon name="pin" size={20} /></span>
+              <div><b>Tienda</b><span>En línea · Envíos a toda Guatemala</span></div>
+            </div>
             {/* Tienda física — pendiente de activar
             <div className="contact-row">
               <span className="ci-ic"><Icon name="pin" size={20} /></span>
@@ -843,7 +868,7 @@ const INFO_PAGES = {
     eyebrow: "FITFUEL", title: "Calidad y laboratorio",
     sub: "Cada lote, verificado. Sin atajos.",
     blocks: [
-      { h: "Testado en laboratorio", p: "Todos nuestros productos pasan por análisis de laboratorio de terceros que verifican pureza, contenido proteico y ausencia de metales pesados y sustancias prohibidas." },
+      { h: "Testeado en laboratorio", p: "Todos nuestros productos pasan por análisis de laboratorio de terceros que verifican pureza, contenido proteico y ausencia de metales pesados y sustancias prohibidas." },
       { h: "Productos originales", p: "Trabajamos únicamente con marcas y distribuidores autorizados. Cada producto llega sellado, con su lote y fecha de vencimiento visibles." },
       { h: "Sin azúcares ocultos", p: "Publicamos la información nutricional completa. Lo que ves en la etiqueta es exactamente lo que recibes." },
     ],
@@ -854,7 +879,42 @@ const INFO_PAGES = {
     blocks: [
       { h: "¿Cómo funciona?", p: "Si eres entrenador, atleta o creador de contenido fitness en Guatemala, te damos un código de descuento para tu comunidad y una comisión por cada venta que generes." },
       { h: "Beneficios", p: "Comisión competitiva, producto a precio especial para ti y materiales para tus redes. Pagos mensuales por transferencia." },
-      { h: "Únete", p: "Escríbenos por WhatsApp o al correo hola@fitfuel.gt con el asunto 'Afiliados' y te enviamos los detalles." },
+      { h: "Únete", p: "Escríbenos al correo contacto@fitfuelgt.com con el asunto 'Afiliados' y te enviamos los detalles." },
+    ],
+  },
+  privacidad: {
+    eyebrow: "Legal", title: "Aviso de privacidad",
+    sub: "Cómo tratamos tus datos personales en FITFUEL.",
+    blocks: [
+      { h: "Qué datos recopilamos", p: "Al comprar o crear una cuenta recopilamos: nombre, correo electrónico, teléfono, dirección de envío e historial de pedidos. Si te registras con Google, recibimos tu nombre y correo de esa cuenta. No almacenamos datos de tarjetas: el pago es contra entrega o por transferencia." },
+      { h: "Para qué los usamos", p: "Usamos tus datos únicamente para procesar y entregar tus pedidos, contactarte sobre tu compra y, si tienes cuenta, guardar tu dirección e historial para agilizar futuras compras." },
+      { h: "Con quién los compartimos", p: "Solo con los proveedores necesarios para operar la tienda: Supabase (base de datos y cuentas), Resend (correos de confirmación) y la empresa de mensajería que entrega tu pedido. No vendemos ni cedemos tus datos a terceros con fines publicitarios." },
+      { h: "Tus derechos", p: "Puedes solicitar acceso, corrección o eliminación de tus datos personales, así como cerrar tu cuenta, escribiéndonos a contacto@fitfuelgt.com. Responderemos en un plazo razonable." },
+      { h: "Seguridad", p: "La conexión con el sitio está cifrada (HTTPS) y el acceso a los datos está restringido. Aun así, ningún sistema es infalible; te recomendamos usar una contraseña única." },
+      { h: "Contacto", p: "Para cualquier duda sobre privacidad, escríbenos a contacto@fitfuelgt.com. Este aviso es una versión base y puede actualizarse; te recomendamos revisarlo periódicamente." },
+    ],
+  },
+  terminos: {
+    eyebrow: "Legal", title: "Términos y condiciones",
+    sub: "Las reglas de uso y compra en FITFUEL.",
+    blocks: [
+      { h: "Aceptación", p: "Al usar este sitio y realizar un pedido aceptas estos términos. Si no estás de acuerdo, por favor no completes la compra." },
+      { h: "Productos y precios", p: "Los precios se muestran en Quetzales (GTQ) e incluyen los impuestos aplicables. Podemos actualizar precios, disponibilidad y descripciones en cualquier momento. Si detectamos un error evidente de precio en tu pedido, te contactaremos antes de procesarlo." },
+      { h: "Pedidos y pago", p: "Aceptamos pago contra entrega (efectivo) y transferencia bancaria. Un pedido se considera confirmado solo cuando verificamos disponibilidad y coordinamos el pago; nos reservamos el derecho de rechazar o cancelar pedidos con datos incompletos o sospechosos." },
+      { h: "Envíos y entregas", p: "Los tiempos y costos de envío se detallan en la página de Envíos. Las fechas son estimadas y pueden variar por causas ajenas a nosotros (clima, mensajería, dirección incompleta)." },
+      { h: "Devoluciones", p: "Por tratarse de productos de consumo, y por higiene y seguridad, no aceptamos devoluciones ni cambios, salvo daño en el transporte según nuestra Política de devoluciones." },
+      { h: "Uso de los suplementos", p: "Nuestros productos son suplementos alimenticios, no medicamentos, y no sustituyen una dieta equilibrada ni el consejo de un profesional de la salud. Consulta a tu médico antes de usarlos si tienes alguna condición." },
+      { h: "Ley aplicable", p: "Estos términos se rigen por las leyes de la República de Guatemala." },
+    ],
+  },
+  cookies: {
+    eyebrow: "Legal", title: "Política de cookies y almacenamiento",
+    sub: "Qué guardamos en tu navegador y por qué.",
+    blocks: [
+      { h: "Almacenamiento necesario", p: "Guardamos tu carrito y tus favoritos en el almacenamiento local (localStorage) de tu navegador para que no los pierdas entre visitas. Es información que se queda en tu dispositivo." },
+      { h: "Sesión de tu cuenta", p: "Si inicias sesión, usamos el almacenamiento de Supabase para mantener tu sesión activa de forma segura. Sin esto no podrías permanecer identificado ni ver tus pedidos." },
+      { h: "Publicidad y analítica", p: "Actualmente no usamos cookies de publicidad de terceros. Si en el futuro incorporamos herramientas de analítica, actualizaremos esta página y, cuando corresponda, te pediremos tu consentimiento." },
+      { h: "Cómo controlarlas", p: "Puedes borrar el almacenamiento y las cookies desde la configuración de tu navegador. Ten en cuenta que, si lo haces, se vaciará tu carrito y se cerrará tu sesión." },
     ],
   },
 };
@@ -958,7 +1018,7 @@ function PackPage({ ctx, route }) {
         <div className="pdp-trust" style={{ marginTop: 40, maxWidth: 520 }}>
           <div><Icon name="truck" size={18} /><span>Envío gratis en pedidos +{money(FF.FREE_SHIP)}</span></div>
           <div><Icon name="shield" size={18} /><span>Productos 100% originales</span></div>
-          <div><Icon name="lab" size={18} /><span>Testado en laboratorio</span></div>
+          <div><Icon name="lab" size={18} /><span>Testeado en laboratorio</span></div>
         </div>
       </div>
     </section>
@@ -987,6 +1047,8 @@ function CheckoutPage({ ctx }) {
   const [promoErr, setPromoErr] = React.useState("");
   const [promoLoading, setPromoLoading] = React.useState(false);
   const [savedAddr, setSavedAddr] = React.useState(null);
+  // Elegible al código de bienvenida solo si es logueado y aún no tiene pedidos.
+  const [welcomeEligible, setWelcomeEligible] = React.useState(false);
 
   const discountAmt = promo ? Math.round(subtotal * promo.discount_pct) / 100 : 0;
   const total = subtotal + shipping - discountAmt;
@@ -994,10 +1056,14 @@ function CheckoutPage({ ctx }) {
   React.useEffect(() => { window.scrollTo(0, 0); }, []);
 
   React.useEffect(() => {
-    if (!user) return;
+    if (!user) { setWelcomeEligible(false); return; }
     sb.from("addresses").select("*").eq("user_id", user.id).limit(1).single()
       .then(({ data }) => { if (data) setSavedAddr(data); });
+    sb.from("orders").select("*", { count: "exact", head: true }).eq("user_id", user.id)
+      .then(({ count }) => setWelcomeEligible((count || 0) === 0));
   }, [user]);
+
+  const promoPlaceholder = welcomeEligible ? "BIENVENIDO10" : "Ingresa tu código";
 
   const applyPromo = async () => {
     const code = promoInput.trim().toUpperCase();
@@ -1098,11 +1164,7 @@ function CheckoutPage({ ctx }) {
           ctx.toast(`Sin stock suficiente de ${prod}. Ajusta tu carrito.`);
           return; // el finally hace setSending(false); no se limpia el carrito
         }
-        if (rpcErr.code === "PGRST202" || /not find the function|does not exist|schema cache/i.test(msg)) {
-          await sb.from("orders").insert(orderPayload).throwOnError(); // fallback
-        } else {
-          throw rpcErr;
-        }
+        throw rpcErr;
       }
 
       // Guardar dirección si usuario está logueado y no tiene una guardada
@@ -1231,7 +1293,7 @@ function CheckoutPage({ ctx }) {
               </div>
 
               <div className="receipt-footer">
-                FITFUEL Guatemala · fitfuel.gt
+                FITFUEL Guatemala · fitfuelgt.com
               </div>
             </div>
 
@@ -1304,7 +1366,6 @@ function CheckoutPage({ ctx }) {
               <legend className="co-h">Pago</legend>
               <div className="co-pay">
                 <label className="pay-opt"><input type="radio" name="pago" value="Contra entrega (efectivo)" defaultChecked /> <span><b>Contra entrega</b><small>Paga en efectivo al recibir</small></span></label>
-                <label className="pay-opt"><input type="radio" name="pago" value="Tarjeta (Visa/Mastercard)" /> <span><b>Tarjeta</b><small>Visa / Mastercard</small></span></label>
                 <label className="pay-opt"><input type="radio" name="pago" value="Transferencia bancaria" /> <span><b>Transferencia</b><small>Te enviamos los datos</small></span></label>
               </div>
             </fieldset>
@@ -1312,7 +1373,7 @@ function CheckoutPage({ ctx }) {
             <h3 className="co-h" id="promo-label">Código de descuento</h3>
             <div className="co-promo">
               <input value={promoInput} onChange={(e) => { setPromoInput(e.target.value); setPromoErr(""); setPromo(null); }}
-                placeholder="BIENVENIDO10" className="co-promo-input" disabled={!!promo}
+                placeholder={promoPlaceholder} className="co-promo-input" disabled={!!promo}
                 aria-labelledby="promo-label" aria-describedby="promo-feedback"
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), applyPromo())} />
               {promo
@@ -1435,10 +1496,12 @@ function AccountPage({ ctx, route }) {
                     <div className="account-field"><span>Miembro desde</span><b>{new Date(user.created_at).toLocaleDateString("es-GT", { year: "numeric", month: "long" })}</b></div>
                   </div>
                 </div>
-                <div style={{ marginTop: 24 }}>
-                  <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 8 }}>Código de bienvenida (primera compra)</p>
-                  <div className="promo-badge">BIENVENIDO10 <span>— 10% de descuento</span></div>
-                </div>
+                {!loading && orders.length === 0 && (
+                  <div style={{ marginTop: 24 }}>
+                    <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 8 }}>Código de bienvenida (primera compra)</p>
+                    <div className="promo-badge">BIENVENIDO10 <span>— 10% de descuento</span></div>
+                  </div>
+                )}
               </div>
             )}
 

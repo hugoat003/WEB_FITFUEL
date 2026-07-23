@@ -63,6 +63,28 @@ FF.PRODUCTS = [
     badge: null, goals: ["musculo", "energia"], hue: 110, stock: 30,
     blurb: "Mayor solubilidad, sin retención. Para quien busca dosis bajas.",
     facts: [["Por dosis", "2g"], ["Servicios", "90"], ["Solubilidad", "Alta"]] },
+  // Creatina MetaNutrition — dos presentaciones como productos SEPARADOS (cada uno su
+  // card), unidos por `group` para que el selector de Tamaño del PDP navegue entre ellos.
+  { id: "crea-meta-500", name: "Creatina MetaNutrition", flavor: "Sin sabor · 500 g",
+    cat: "creatina", price: 199, oldPrice: null, rating: 4.9, reviews: 0,
+    badge: "+10 TOMAS GRATIS", goals: ["musculo", "energia"], hue: 190, stock: null,
+    group: "crea-meta", sizeLabel: "500 g",
+    image: "/img/creatina-meta-500-front.webp",
+    blurb: "Creatina monohidratada micronizada 100% pura (Creatine+ de Meta Nutrition). 5g por toma, 0 calorías, sin sabor y apta para veganos. Edición especial con 10 tomas gratis.",
+    facts: [["Por dosis", "5g"], ["Servicios", "~110"], ["Pureza", "100%"]],
+    variants: [
+      { flavor: "Sin sabor", size: "500 g · ~110 tomas", price: 199, images: ["/img/creatina-meta-500-front.webp", "/img/creatina-meta-500-nutri2.webp"], facts: [["Por dosis", "5g"], ["Servicios", "~110"], ["Creatina", "100%"]] },
+    ] },
+  { id: "crea-meta-1050", name: "Creatina MetaNutrition", flavor: "Sin sabor · 1050 g",
+    cat: "creatina", price: 449, oldPrice: null, rating: 4.9, reviews: 0,
+    badge: "+10 TOMAS GRATIS", goals: ["musculo", "energia"], hue: 190, stock: null,
+    group: "crea-meta", sizeLabel: "1050 g",
+    image: "/img/creatina-meta-1050-front.webp",
+    blurb: "Creatina monohidratada micronizada 100% pura (Creatine+ de Meta Nutrition). 5g por toma, 0 calorías, sin sabor y apta para veganos. Edición especial con 10 tomas gratis.",
+    facts: [["Por dosis", "5g"], ["Servicios", "~210"], ["Pureza", "100%"]],
+    variants: [
+      { flavor: "Sin sabor", size: "1050 g · ~210 tomas", price: 449, images: ["/img/creatina-meta-1050-front.webp", "/img/creatina-meta-1050-back.webp"], facts: [["Por dosis", "5g"], ["Servicios", "~210"], ["Creatina", "100%"]] },
+    ] },
   { id: "ignite", name: "Pre-Entreno IGNITE", flavor: "Sandía Helada",
     cat: "pre", price: 295, oldPrice: 339, rating: 4.8, reviews: 870,
     badge: "INTENSO", goals: ["energia", "definir"], hue: 350, stock: 40,
@@ -265,27 +287,28 @@ FF.BLOG = [
 
 // Stats marquee (Guatemala)
 FF.STATS = [
-  "ENVÍO GRATIS +Q400", "TESTADO EN LABORATORIO", "+50,000 ATLETAS", "PRODUCTOS 100% ORIGINALES",
+  "ENVÍO GRATIS +Q400", "TESTEADO EN LABORATORIO", "+50,000 ATLETAS", "PRODUCTOS 100% ORIGINALES",
   "SIN AZÚCARES OCULTOS", "ENVÍO A TODA GUATEMALA",
 ];
 
-// Datos de contacto / negocio (Guatemala)
+// Datos de contacto / negocio (Guatemala). Tienda 100% en línea.
+// WhatsApp pendiente de definir: al dejarlo vacío, la UI oculta ese contacto.
 FF.CONTACT = {
-  address: "13 Calle 2-60, Zona 10, Ciudad de Guatemala",
-  city: "Ciudad de Guatemala, Guatemala",
-  phone: "+502 2245 6700",
-  whatsapp: "+502 5512 8800",
-  whatsappLink: "https://wa.me/50255128800",
-  email: "hola@fitfuel.gt",
-  hours: "Lun a Vie 8:00–18:00 · Sáb 9:00–13:00",
+  address: "",            // sin local físico (tienda en línea)
+  city: "Guatemala",
+  phone: "",              // sin teléfono
+  whatsapp: "",           // pendiente de definir
+  whatsappLink: "",
+  email: "contacto@fitfuelgt.com",
+  hours: "",              // en línea, sin horario fijo
 };
 
 // Preguntas frecuentes
 FF.FAQ = [
   { q: "¿Hacen envíos a todo el país?", a: "Sí. Enviamos a los 22 departamentos de Guatemala. En la Ciudad de Guatemala y zonas cercanas el envío suele tardar 24-48 horas; al interior, de 2 a 4 días hábiles." },
   { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de Q35. En pedidos mayores a Q400 el envío es totalmente gratis a toda Guatemala." },
-  { q: "¿Qué métodos de pago aceptan?", a: "Aceptamos tarjetas Visa y Mastercard, transferencia bancaria y pago contra entrega (efectivo) en la Ciudad de Guatemala." },
-  { q: "¿Los productos son originales?", a: "100%. Todos nuestros suplementos son originales, sellados y testados en laboratorio. Cada lote cuenta con su certificado de análisis." },
+  { q: "¿Qué métodos de pago aceptan?", a: "Aceptamos pago contra entrega (efectivo) y transferencia bancaria. Si eliges transferencia, te enviamos los datos para completar el pago." },
+  { q: "¿Los productos son originales?", a: "100%. Todos nuestros suplementos son originales, sellados y testeados en laboratorio. Cada lote cuenta con su certificado de análisis." },
   { q: "¿Aceptan devoluciones?", a: "Por higiene y seguridad del producto, no aceptamos devoluciones ni cambios una vez realizada la compra. Si tienes dudas sobre qué suplemento elegir, escríbenos por WhatsApp antes de comprar y te asesoramos sin compromiso." },
   { q: "¿Cómo sé qué suplemento necesito?", a: "Usa nuestro selector de objetivos: eliges tu meta (ganar músculo, definir, energía o recuperación) y te mostramos exactamente lo que necesitas." },
 ];

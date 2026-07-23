@@ -183,14 +183,22 @@ body {
   .ehero-proof { margin-top: 24px; }
 }
 @media (max-width: 560px) {
-  .ehero { padding: 12px 0 22px; }
-  .ehero-grid { gap: 14px; }
-  /* Solo imagen + overlay + flechas; el texto y los puntos se ocultan */
-  .ehero-copy-slide, .ehero-dots { display: none; }
-  .ehero-media { order: -1; margin-top: 0; }
+  .ehero { padding: 16px 0 30px; }
+  .ehero-grid { gap: 20px; }
+  /* Mismo contenido que en escritorio, apilado y centrado: imagen arriba, luego
+     eyebrow, nombre, subtítulo, precio, botones y puntos */
+  .ehero-media { order: -1; margin: 0 auto; width: 100%; max-width: 300px; }
   .ehero-stage { height: auto; aspect-ratio: 1 / 1; }
-  .ehero-cta { margin-top: 0; gap: 10px; }
+  .ehero-badge { display: none; }   /* el nombre y precio ya se ven debajo */
+  .ehero-copy { text-align: center; }
+  .ehero-copy-slide { display: block; }
+  .ehero-eyebrow { justify-content: center; }
+  .ehero-title { font-size: clamp(28px, 8vw, 40px); margin-top: 12px; }
+  .ehero-sub { display: none; }   /* más compacto en celular */
+  .ehero-price-row { justify-content: center; margin-top: 16px; }
+  .ehero-cta { margin-top: 22px; gap: 10px; }
   .ehero-btn { height: 46px; flex: 1; justify-content: center; }
+  .ehero-dots { display: flex; justify-content: center; margin-top: 22px; }
   .ehero-nav { width: 38px; height: 38px; }
 }
 
@@ -220,8 +228,10 @@ body {
 .ecat-arrow { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 @media (max-width: 900px) { .ecats-grid { grid-template-columns: 1fr 1fr; } .ecats-grid .ecat:nth-child(n+5) { display: none; } }
 @media (max-width: 520px) {
-  .ecats-grid { grid-template-columns: 1fr; }
+  .ecats { padding-top: clamp(34px,7vw,50px); }
+  .ecats-grid { grid-template-columns: 1fr; gap: 12px; }
   .ecats-grid .ecat:nth-child(n+3) { display: none; }
+  .ecat .ph { height: 178px; }
 }
 
 img { display: block; max-width: 100%; }

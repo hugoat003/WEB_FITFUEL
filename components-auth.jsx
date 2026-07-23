@@ -42,7 +42,29 @@ function AuthModal({ onClose }) {
   };
 
   const handleGoogle = () => {
-    sb.auth.signInWithOAuth({ provider: "google" });
+    // Volver a la MISMA dirección desde la que se abrió el sitio (p. ej. la IP de
+    // la red local en el móvil), no a la "Site URL" por defecto de Supabase, que
+    // suele ser localhost y en el iPhone apunta al propio teléfono → no conecta.
+    sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const rl = rateLimit("ff_rl_forgot", 4, 15 * 60 * 1000); // 4 intentos / 15 min
+    if (!rl.ok) { setError(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); return; }
+    setLoading(true); setError("");
+    // Supabase manda un enlace de recuperación; al volver, detectSessionInUrl dispara
+    // el evento PASSWORD_RECOVERY (lo escucha app.jsx → abre el modal de nueva contraseña).
+    const { error } = await sb.auth.resetPasswordForEmail(f.get("email"), {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setDone("Si el correo existe, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja (y spam).");
   };
 
   const trapRef = useFocusTrap(true, onClose);
@@ -67,6 +89,20 @@ function AuthModal({ onClose }) {
             <Icon name="check" size={22} stroke={3} />
             <p>{done}</p>
           </div>
+        ) : tab === "forgot" ? (
+          <form className="auth-form" onSubmit={handleForgot}>
+            <p className="auth-promo-note" style={{ marginTop: 0 }}>
+              Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
+            </p>
+            <label>Correo electrónico<input name="email" type="email" required autoComplete="email" placeholder="tu@correo.com" /></label>
+            {error && <p className="auth-error">{error}</p>}
+            <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
+              {loading ? "Enviando…" : "Enviar enlace"}
+            </button>
+            <button type="button" className="link-x" style={{ display: "block", margin: "12px auto 0" }} onClick={() => reset("login")}>
+              ← Volver a iniciar sesión
+            </button>
+          </form>
         ) : tab === "login" ? (
           <form className="auth-form" onSubmit={handleLogin}>
             <label>Correo electrónico<input name="email" type="email" required autoComplete="email" placeholder="tu@correo.com" /></label>
@@ -74,6 +110,9 @@ function AuthModal({ onClose }) {
             {error && <p className="auth-error">{error}</p>}
             <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
               {loading ? "Entrando…" : "Iniciar sesión"}
+            </button>
+            <button type="button" className="link-x" style={{ display: "block", margin: "12px auto 0" }} onClick={() => reset("forgot")}>
+              ¿Olvidaste tu contraseña?
             </button>
           </form>
         ) : (
@@ -92,7 +131,7 @@ function AuthModal({ onClose }) {
           </form>
         )}
 
-        {!done && (
+        {!done && tab !== "forgot" && (
           <>
             <div className="auth-divider"><span>o</span></div>
             <button className="btn btn-ghost btn-block auth-google" onClick={handleGoogle}>
@@ -144,4 +183,56 @@ function UserMenu({ user, onClose }) {
   );
 }
 
-Object.assign(window, { AuthModal, UserMenu });
+/* ── Modal: nueva contraseña (tras clic en el enlace de recuperación) ────── */
+function ResetPasswordModal({ onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  const trapRef = useFocusTrap(true, onClose);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const pw = (f.get("password") || "").toString();
+    if (pw.length < 6) { setError("Mínimo 6 caracteres"); return; }
+    if (pw !== f.get("confirm")) { setError("Las contraseñas no coinciden"); return; }
+    setLoading(true); setError("");
+    const { error } = await sb.auth.updateUser({ password: pw });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setDone(true);
+  };
+
+  return (
+    <>
+      <div className="auth-scrim" onClick={onClose} />
+      <div className="auth-modal" role="dialog" aria-modal="true" ref={trapRef}>
+        <button className="icon-btn auth-close" onClick={onClose} aria-label="Cerrar">
+          <Icon name="x" size={18} />
+        </button>
+        <img src="/logo-mark.png" alt="FITFUEL" className="auth-logo-img" />
+        <h3 style={{ textAlign: "center", fontFamily: "var(--font-display)", fontSize: 20, margin: "4px 0 16px" }}>
+          Nueva contraseña
+        </h3>
+        {done ? (
+          <div className="auth-success">
+            <Icon name="check" size={22} stroke={3} />
+            <p>¡Listo! Tu contraseña se actualizó. Ya puedes iniciar sesión con ella.</p>
+            <button className="btn btn-primary btn-block" onClick={onClose} style={{ marginTop: 12 }}>Continuar</button>
+          </div>
+        ) : (
+          <form className="auth-form" onSubmit={submit}>
+            <label>Nueva contraseña<input name="password" type="password" required autoComplete="new-password" placeholder="Mínimo 6 caracteres" minLength={6} /></label>
+            <label>Confirmar contraseña<input name="confirm" type="password" required autoComplete="new-password" placeholder="Repite la contraseña" /></label>
+            {error && <p className="auth-error">{error}</p>}
+            <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar contraseña"}
+            </button>
+          </form>
+        )}
+      </div>
+    </>
+  );
+}
+
+Object.assign(window, { AuthModal, UserMenu, ResetPasswordModal });
