@@ -69,7 +69,7 @@ function HomePage({ ctx }) {
       <section className="ebens">
         <div className="ff-wrap ebens-grid">
           <div className="eben"><div><div className="eben-h">Envío gratis</div><div className="eben-p">En pedidos desde {money(FF.FREE_SHIP)}</div></div></div>
-          <div className="eben"><div><div className="eben-h">Entrega 24–48h</div><div className="eben-p">En toda Guatemala</div></div></div>
+          <div className="eben"><div><div className="eben-h">Entrega 2-3 días hábiles</div><div className="eben-p">En toda Guatemala</div></div></div>
           <div className="eben"><div><div className="eben-h">Calidad certificada</div><div className="eben-p">Testeado en laboratorio</div></div></div>
         </div>
       </section>
@@ -422,7 +422,7 @@ function ProductPage({ ctx, route }) {
         <section className="dp-cards">
           <div className="dp-card">
             <h3 className="dp-arch">Envíos</h3>
-            <p>Entregamos de lunes a viernes en 24–48h. Envío gratis en pedidos desde {money(FF.FREE_SHIP)} a toda Guatemala.</p>
+            <p>Entregamos de lunes a viernes en 2 a 3 días hábiles. Envío gratis en pedidos desde {money(FF.FREE_SHIP)} a toda Guatemala.</p>
             <a href="#/ayuda/envios" className="dp-card-link dp-mono">Ver detalles</a>
           </div>
           <div className="dp-card">
@@ -833,7 +833,7 @@ const CONTENT_PAGES = {
     sub: "Llevamos tu pedido a los 22 departamentos de Guatemala.",
     blocks: [
       { h: "Cobertura", p: "Enviamos a toda la República de Guatemala a través de mensajería nacional. En la Ciudad de Guatemala contamos también con mensajería propia el mismo día para pedidos antes del mediodía." },
-      { h: "Tiempos de entrega", p: "Ciudad de Guatemala y área metropolitana: 24-48 horas. Cabeceras departamentales: 2-3 días hábiles. Municipios y áreas rurales: 3-5 días hábiles." },
+      { h: "Tiempos de entrega", p: "Ciudad de Guatemala y área metropolitana: 2 a 3 días hábiles. Cabeceras departamentales: 2 a 3 días hábiles. Municipios y áreas rurales: 3-5 días hábiles." },
       { h: "Costo de envío", p: "Tarifa plana de Q35 a todo el país. En pedidos mayores a Q400 el envío es totalmente gratis." },
       { h: "Seguimiento", p: "Al despachar tu pedido te enviamos por WhatsApp el número de guía para que sigas tu paquete en tiempo real." },
     ],
