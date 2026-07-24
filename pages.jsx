@@ -832,8 +832,8 @@ const CONTENT_PAGES = {
     eyebrow: "Ayuda", title: "Envíos",
     sub: "Llevamos tu pedido a los 22 departamentos de Guatemala.",
     blocks: [
-      { h: "Cobertura", p: "Enviamos a toda la República de Guatemala a través de mensajería nacional. En la Ciudad de Guatemala contamos también con mensajería propia el mismo día para pedidos antes del mediodía." },
-      { h: "Tiempos de entrega", p: "Ciudad de Guatemala y área metropolitana: 2 a 3 días hábiles. Cabeceras departamentales: 2 a 3 días hábiles. Municipios y áreas rurales: 3-5 días hábiles." },
+      { h: "Cobertura", p: "Enviamos a toda la República de Guatemala a través de mensajería nacional, a cualquiera de los 22 departamentos." },
+      { h: "Tiempos de entrega", p: "El tiempo estimado de entrega es de 2 a 3 días hábiles a cualquier punto del país, contados a partir de la confirmación de tu pedido." },
       { h: "Costo de envío", p: "Tarifa plana de Q35 a todo el país. En pedidos mayores a Q400 el envío es totalmente gratis." },
       { h: "Seguimiento", p: "Al despachar tu pedido te enviamos por WhatsApp el número de guía para que sigas tu paquete en tiempo real." },
     ],

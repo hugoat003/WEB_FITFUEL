@@ -305,7 +305,7 @@ FF.CONTACT = {
 
 // Preguntas frecuentes
 FF.FAQ = [
-  { q: "¿Hacen envíos a todo el país?", a: "Sí. Enviamos a los 22 departamentos de Guatemala. En la Ciudad de Guatemala y zonas cercanas el envío suele tardar 2 a 3 días hábiles; al interior, de 2 a 4 días hábiles." },
+  { q: "¿Hacen envíos a todo el país?", a: "Sí. Enviamos a los 22 departamentos de Guatemala. El tiempo estimado de entrega es de 2 a 3 días hábiles a cualquier punto del país." },
   { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de Q35. En pedidos mayores a Q400 el envío es totalmente gratis a toda Guatemala." },
   { q: "¿Qué métodos de pago aceptan?", a: "Aceptamos pago contra entrega (efectivo) y transferencia bancaria. Si eliges transferencia, te enviamos los datos para completar el pago." },
   { q: "¿Los productos son originales?", a: "100%. Todos nuestros suplementos son originales, sellados y testeados en laboratorio. Cada lote cuenta con su certificado de análisis." },
