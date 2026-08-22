@@ -1,0 +1,13 @@
+# FITFUEL — Redirecciones de Cloudflare Pages.
+# Cloudflare sirve primero los archivos que existen en el deploy; estas reglas solo actúan
+# sobre lo que no encuentra. Por eso /producto/whey-vainilla/index.html (que genera
+# prerender.js) gana a la regla comodín de abajo.
+
+# La tienda vivía en /FITFUEL.html. Los enlaces compartidos y los marcadores siguen ahí:
+# 301 permanente a la raíz para no perder ni visitas ni autoridad de dominio en buscadores.
+# El navegador conserva el #/ruta al redirigir, y el shim del <head> lo convierte en ruta real.
+/FITFUEL.html  /  301
+
+# Cualquier otra ruta la resuelve la app en el navegador (200 = reescritura, no redirección:
+# la URL que ve el visitante no cambia).
+/*  /index.html  200

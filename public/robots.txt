@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /checkout
+Disallow: /cuenta
+
+Sitemap: https://fitfuelgt.com/sitemap.xml

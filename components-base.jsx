@@ -5,42 +5,88 @@ import React from "react";
 const money = (n) => "Q" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = (n) => Number(n).toLocaleString("en-US");
 
-/* ---------- Router por hash (funciona en file:// y servidor simple) ---------- */
-function parseHash() {
-  const raw = (window.location.hash || "").replace(/^#\/?/, "");
-  const [pathPart, queryPart] = raw.split("?");
-  const parts = pathPart.split("/").map(decodeURIComponent).filter(Boolean);
+/* ---------- Router de rutas reales (History API) ----------
+   Antes esto era un router por hash: /#/producto/whey-vainilla. Para Google todo lo que va
+   detrás de `#` es la MISMA página, así que la tienda entera era una sola URL y ninguna
+   ficha de producto podía posicionar por su cuenta. Ahora cada página tiene su URL real,
+   /producto/whey-vainilla, que el servidor devuelve con su propio HTML y sus metadatos
+   (ver prerender.js y public/_redirects).
+
+   Los enlaces del sitio siguen siendo <a href="/ruta"> normales — un interceptor global de
+   clics más abajo los convierte en navegación sin recarga. Así los buscadores y el
+   "abrir en pestaña nueva" del navegador ven enlaces de verdad. */
+
+const decodeSafe = (v) => { try { return decodeURIComponent(v); } catch { return v; } };
+
+function parseLocation() {
+  const pathPart = (window.location.pathname || "/").replace(/^\/+/, "").replace(/\/+$/, "");
+  const parts = pathPart.split("/").map(decodeSafe).filter(Boolean);
   const query = {};
-  if (queryPart) queryPart.split("&").forEach((kv) => {
-    const [k, v] = kv.split("=");
-    if (k) query[decodeURIComponent(k)] = decodeURIComponent(v || "");
-  });
+  try {
+    new URLSearchParams(window.location.search).forEach((v, k) => { query[k] = v; });
+  } catch {}
   return { path: "/" + parts.join("/"), parts, query };
 }
 
+// Compatibilidad: quedan enlaces antiguos compartidos por WhatsApp con /#/ruta. El shim del
+// <head> los reescribe al cargar; esto cubre los que aparezcan ya en marcha.
+function toPath(to) {
+  const raw = String(to == null ? "" : to).replace(/^#/, "");
+  return "/" + raw.replace(/^\/+/, "");
+}
+
 function navigate(to) {
-  const target = to.startsWith("#") ? to : "#" + (to.startsWith("/") ? to : "/" + to);
-  if (window.location.hash === target) {
+  const target = toPath(to);
+  const [targetPath] = target.split("?");
+  if (window.location.pathname === targetPath && !target.includes("?")) {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  } else {
-    window.location.hash = target;
+    return;
   }
+  window.history.pushState({}, "", target);
+  window.dispatchEvent(new CustomEvent("ff:route"));
 }
 
 function useRoute() {
-  const [route, setRoute] = React.useState(parseHash);
+  const [route, setRoute] = React.useState(parseLocation);
   React.useEffect(() => {
-    const on = () => setRoute(parseHash());
-    window.addEventListener("hashchange", on);
-    return () => window.removeEventListener("hashchange", on);
+    const on = () => setRoute(parseLocation());
+    window.addEventListener("popstate", on);   // atrás/adelante del navegador
+    window.addEventListener("ff:route", on);   // navigate() interno
+    return () => {
+      window.removeEventListener("popstate", on);
+      window.removeEventListener("ff:route", on);
+    };
   }, []);
   return route;
 }
 
+// Archivos que debe servir el servidor tal cual, sin pasar por el router.
+const ASSET_RE = /\.(html?|js|mjs|css|png|jpe?g|gif|webp|avif|svg|ico|pdf|txt|xml|json|zip|mp4|webm|woff2?)$/i;
+
+// Interceptor global de clics: convierte los <a href="/ruta"> internos en navegación sin
+// recarga, respetando ctrl/cmd-clic, target="_blank", descargas y enlaces externos.
+if (typeof document !== "undefined" && !window.__ffLinkHandler) {
+  window.__ffLinkHandler = true;
+  document.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target && e.target.closest ? e.target.closest("a") : null;
+    if (!a || a.hasAttribute("download")) return;
+    if (a.target && a.target !== "" && a.target !== "_self") return;
+    const href = a.getAttribute("href");
+    // Sin href, correo, teléfono o ancla en la misma página: comportamiento normal.
+    if (!href || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("#")) return;
+    let url;
+    try { url = new URL(a.href, window.location.href); } catch { return; }
+    if (url.origin !== window.location.origin) return;   // externo: navegación normal
+    if (ASSET_RE.test(url.pathname)) return;             // /admin.html, imágenes, etc.
+    e.preventDefault();
+    navigate(url.pathname + url.search);
+  });
+}
+
 function Link({ to, children, className, style, onClick, ariaLabel }) {
-  const href = "#" + (to.startsWith("/") ? to : "/" + to);
   return (
-    <a href={href} className={className} style={style} aria-label={ariaLabel}
+    <a href={toPath(to)} className={className} style={style} aria-label={ariaLabel}
       onClick={(e) => { if (onClick) onClick(e); }}>
       {children}
     </a>
@@ -172,4 +218,4 @@ function useFocusTrap(active, onClose) {
   return ref;
 }
 
-Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseHash, navigate, useRoute, Link, rateLimit, useFocusTrap });
+Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap });

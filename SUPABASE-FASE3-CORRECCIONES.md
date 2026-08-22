@@ -1,30 +1,36 @@
-# FITFUEL — Fase 1.1: `place_order` con montos autoritativos (servidor)
+# FITFUEL — Fase 3: correcciones de seguridad en `place_order`
 
-> ⚠️ **SUPERADO POR [`SUPABASE-FASE3-CORRECCIONES.md`](SUPABASE-FASE3-CORRECCIONES.md).**
-> La versión de esta página deja que quien compra como invitado reutilice los códigos de
-> primera compra. Corre el bloque de la Fase 3, que incluye todo lo de aquí más ese arreglo.
-> Este documento se conserva para entender por qué se hizo cada cosa.
+> **Qué hay que hacer:** copiar el bloque SQL de abajo, pegarlo entero en
+> **Supabase → SQL Editor** y pulsar **Run**. Es lo único de esta ronda que no se
+> despliega solo con el código: hay que correrlo a mano una vez.
 
-Reemplaza la función `place_order` (la de `SUPABASE-INVENTORY-SETUP.md`) por esta versión, que
-**recalcula el dinero en el servidor** y deja de confiar en los totales del navegador:
+## Qué cambia respecto a [`SUPABASE-FASE1-PLACE-ORDER.md`](SUPABASE-FASE1-PLACE-ORDER.md)
 
-- **Subtotal** = suma de las líneas del pedido (el `subtotal` declarado por el cliente se ignora).
-- **Descuento** = se valida el código contra `promo_codes` (que esté `active`; si es de primera
-  compra, que el usuario no tenga pedidos previos). El `discount_pct` que manda el cliente se ignora.
-- **Total** = subtotal + envío − descuento, recalculado y sin negativos. Se **guarda lo que calcula
-  el servidor**, no lo que dice el navegador.
+**Los códigos de primera compra ahora exigen una cuenta.**
 
-> **Alcance (enfoque proporcionado):** los **precios de línea** todavía se toman del cliente. La
-> recomputación total precio-por-variante se hará junto con la pasarela de tarjeta. Aun así, ya no se
-> puede: falsear el total, inventar un descuento, ni reusar un código de primera compra.
->
-> No hace falta cambiar el código de la tienda ni del admin: el checkout ya manda `items`,
-> `discount_code`, `user_id` y `shipping`. El servidor hace el resto.
+Antes, la comprobación de "¿ya compraste?" solo corría si el pedido llevaba `user_id`:
+
+```sql
+if coalesce(r_promo.first_purchase_only, false) and v_uid is not null then
+```
+
+Como quien compra sin iniciar sesión manda `user_id = null`, la condición era falsa y el
+descuento se aplicaba **siempre**. En la práctica `BIENVENIDO10` era un 10% permanente para
+cualquiera que comprase como invitado, en todos sus pedidos.
+
+Ahora, si el código es de primera compra y no hay sesión, la función **rechaza el pedido**
+con `CODIGO_REQUIERE_CUENTA`. La tienda ya lo comprueba antes de llegar aquí y le pide al
+cliente que inicie sesión; esto es la segunda barrera, la que no se puede saltar desde el
+navegador.
+
+Rechazar en vez de aplicar 0% es deliberado: si el servidor quitara el descuento en
+silencio, el cliente habría confirmado viendo un total con descuento y se le cobraría otro.
 
 ## ⚠️ Importante al correrlo
-**Copia y ejecuta TODO el bloque de una sola vez** — desde `create or replace` hasta el `grant ...;`
-final. No selecciones solo una parte: si cortas antes del cierre `$fn$;`, Postgres da el error
-*"unterminated dollar-quoted string"*. Lo más seguro: pega todo en el SQL Editor, **no dejes nada
+
+**Copia y ejecuta TODO el bloque de una sola vez** — desde `create or replace` hasta el
+`grant ...;` final. Si cortas antes del cierre `$fn$;`, Postgres da el error
+*"unterminated dollar-quoted string"*. Pega todo en el SQL Editor, **no dejes nada
 seleccionado** y pulsa **Run** (así corre el buffer completo).
 
 ```sql
@@ -78,7 +84,13 @@ begin
     select * into r_promo from public.promo_codes
      where upper(code) = upper(v_code) and active = true;
     if found then
-      if coalesce(r_promo.first_purchase_only, false) and v_uid is not null then
+      if coalesce(r_promo.first_purchase_only, false) then
+        -- CAMBIO FASE 3: un codigo de primera compra exige cuenta. Sin user_id no hay
+        -- forma de contar compras previas, asi que antes era un descuento infinito
+        -- para cualquiera que comprase como invitado.
+        if v_uid is null then
+          raise exception 'CODIGO_REQUIERE_CUENTA';
+        end if;
         select count(*) into v_prior from public.orders where user_id = v_uid;
         v_pct := case when v_prior > 0 then 0 else coalesce(r_promo.discount_pct, 0) end;
       else
@@ -117,12 +129,26 @@ $fn$;
 grant execute on function public.place_order(jsonb, jsonb) to anon, authenticated;
 ```
 
-## Probar (seguro, con un pedido real de prueba)
-1. En la tienda, agrega algo barato al carrito y ve al checkout; aplica `BIENVENIDO10` y confirma.
-2. Verifica en **Supabase → SQL Editor**:
+## Cómo comprobar que quedó bien
+
+1. **Sin iniciar sesión**, agrega algo barato al carrito y ve al checkout. Escribe
+   `BIENVENIDO10` y pulsa Aplicar → debe salir *"Este código es solo para la primera
+   compra. Crea tu cuenta gratis o inicia sesión para usarlo."*
+2. **Con sesión y sin pedidos previos**, el mismo código debe aplicar el 10%.
+3. **Con sesión y con un pedido previo**, debe salir *"Este código es solo para tu primera
+   compra"*.
+4. Tras un pedido de prueba, comprueba los montos en **SQL Editor**:
    ```sql
    select id, subtotal, shipping, discount_code, discount_pct, total, created_at
    from public.orders order by created_at desc limit 3;
    ```
-   El `total` debe cuadrar con `subtotal + shipping - (subtotal*discount_pct/100)`.
-3. Borra el pedido de prueba desde el panel (**Pedidos → ✕**) para no ensuciar tus métricas.
+   `total` debe cuadrar con `subtotal + shipping - (subtotal * discount_pct / 100)`.
+5. Borra los pedidos de prueba desde el panel (**Pedidos → ✕**) para no ensuciar métricas.
+
+## Sigue pendiente (no es de esta ronda)
+
+Los **precios de línea** todavía llegan desde el navegador; el servidor recalcula el
+subtotal sumándolos, pero no los verifica contra el catálogo. Con pago contra entrega y
+transferencia el riesgo está acotado porque tú revisas cada pedido antes de cobrarlo.
+**Antes de activar pago con tarjeta**, `place_order` tiene que recalcular el precio de cada
+variante leyéndolo de la base de datos.

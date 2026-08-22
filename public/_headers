@@ -1,17 +1,39 @@
 # FITFUEL — Cabeceras de seguridad (Cloudflare Pages)
 # Este archivo se sirve desde la raíz del deploy (dist/_headers).
 #
-# La CSP va en modo REPORT-ONLY: NO bloquea nada, solo reporta violaciones en la consola
-# del navegador (F12 → Console). Es intencional para no arriesgar la tienda en vivo.
-# ▸ Cómo activarla de verdad: prueba en un preview (o producción) haciendo login, agregar al
-#   carrito, checkout, y en el panel: login, publicar catálogo y moderar una reseña, mirando la
-#   consola. Si NO aparecen errores rojos de "Content Security Policy", cambia el nombre de la
-#   cabecera de `Content-Security-Policy-Report-Only` a `Content-Security-Policy` para forzarla.
+# La CSP está ACTIVA (ya no es report-only). Dominios externos que la tienda usa de verdad:
+#   fonts.googleapis.com / fonts.gstatic.com  → tipografías
+#   *.supabase.co                             → auth, base de datos, catálogo e imágenes
+#   api.web3forms.com                         → aviso a la tienda de pedido nuevo y contacto
+#
+# Los correos AL CLIENTE (confirmación y cambios de estado) no aparecen aquí porque los
+# envía el servidor desde /api/order-confirmation, no el navegador. EmailJS ya no se usa.
+#   cdn.jsdelivr.net                          → Chart.js y supabase-js del panel (fijados con SRI)
+#
+# LÍMITE CONOCIDO: script-src conserva 'unsafe-inline' porque admin.html usa manejadores
+# en línea (onclick="…") en decenas de sitios. Quitarlo exige convertirlos a addEventListener.
+# Aun con 'unsafe-inline', esta política ya bloquea scripts de dominios desconocidos, el
+# envío de datos fuera de los dominios de arriba, el embebido en iframes y <object>.
+#
+# Si algo dejara de funcionar tras un cambio, abre la consola (F12) y busca errores de
+# "Content Security Policy": dicen exactamente qué directiva y qué dominio faltó.
 
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
-  Strict-Transport-Security: max-age=31536000
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.web3forms.com https://api.emailjs.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://*.supabase.co; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.web3forms.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+
+# Los assets del build llevan un hash en el nombre: cuando cambia el contenido cambia la
+# URL, así que se pueden cachear para siempre. Ahorra la descarga en cada visita repetida.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# El catálogo local y el panel deben revalidarse siempre (cambian sin cambiar de nombre).
+/data.js
+  Cache-Control: public, max-age=0, must-revalidate
+/admin.html
+  Cache-Control: no-store

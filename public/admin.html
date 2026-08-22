@@ -8,8 +8,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Dependencias del panel: versión EXACTA + integrity (SRI). Este panel maneja pedidos,
+     datos de clientes y la publicación del catálogo con una sesión de administrador, así que
+     no puede cargar "la última versión que haya" de un CDN: `supabase-js@2` era un tag
+     flotante y cualquier release nueva entraba sola. Con SRI, el navegador rechaza el script
+     si el contenido no coincide byte a byte con el hash de abajo.
+     Para subir de versión: cambia la URL y recalcula el hash con
+       curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+        integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"
+        integrity="sha384-qafw21c/iciq0VXsi9FzkfoQv5I/V0iqE4lSNcKXPnW9/UTJLnv5CcN4FHxVLnKg"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -350,7 +361,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
       <button class="nav-item" data-tab="testimonios"><span class="nav-icon">💬</span>Testimonios</button>
       <button class="nav-item" data-tab="ajustes"><span class="nav-icon">⚙️</span>Ajustes</button>
     </nav>
-    <div class="sb-foot"><a href="FITFUEL.html" target="_blank">← Ver tienda</a></div>
+    <div class="sb-foot"><a href="/" target="_blank" rel="noopener">← Ver tienda</a></div>
   </aside>
 
   <!-- MAIN -->
@@ -972,7 +983,7 @@ function normalizeOrder(o) {
 }
 const hueColor = h => `oklch(0.72 0.17 ${h})`;
 const money = n => 'Q' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
-const fmtDate = s => { try { return new Date(s).toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' }); } catch { return s; } };
+const fmtDate = s => { try { return new Date(s).toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' }); } catch { return esc(s); } };
 const fmtTime = s => { try { return new Date(s).toLocaleTimeString('es-GT', { hour:'2-digit', minute:'2-digit' }); } catch { return ''; } };
 
 function stockBadge(stock) {
@@ -1418,155 +1429,36 @@ async function changeOrderStatus(idx, status) {
   }
 }
 
-// Aviso de cambio de estado por correo (EmailJS REST — plantilla que imprime {{{html_body}}})
-const EMAILJS = { service: 'service_yqntdgr', template: 'template_58by5up', publicKey: 'YuGA3cDVuq7MODG4T' };
-const STATUS_LABELS = { pendiente:'Pendiente', confirmado:'Confirmado', enviado:'Enviado', entregado:'Entregado', cancelado:'Cancelado' };
-const STATUS_MSG = {
-  confirmado: 'Tu pedido fue confirmado y lo estamos preparando. 💪',
-  enviado:    'Tu pedido va en camino. 🚚',
-  entregado:  'Tu pedido fue entregado. ¡Gracias por tu compra!',
-  cancelado:  'Tu pedido fue cancelado. Si tienes dudas, escríbenos.',
-};
-const STATUS_COLOR = { pendiente:'#8C877C', confirmado:'#2E7D5B', enviado:'#2F6FB0', entregado:'#1F8A70', cancelado:'#C0392B' };
-const STATUS_EMOJI = { pendiente:'🕒', confirmado:'✅', enviado:'🚚', entregado:'📦', cancelado:'✖️' };
-const STATUS_SUBJECT = {
-  confirmado: (id) => `✅ Tu pedido #${id} fue confirmado`,
-  enviado:    (id) => `🚚 Tu pedido #${id} va en camino`,
-  entregado:  (id) => `📦 Tu pedido #${id} fue entregado`,
-  cancelado:  (id) => `Tu pedido #${id} fue cancelado`,
-};
-
-// ── Constructores de correo HTML (diseño + colores desde el código) ──────────
-function ffEmailEsc(s) {
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function ffItemRows(items) {
-  return (items || []).map(it => {
-    const line = ffEmailEsc(it.name) + (it.flavor ? ' <span style="color:#8C877C">(' + ffEmailEsc(it.flavor) + ')</span>' : '');
-    const amt = 'Q' + ((it.price || 0) * (it.qty || 0)).toFixed(2);
-    return `<tr>
-      <td style="padding:10px 0;border-bottom:1px solid #ECEAE3;font:14px/1.4 Arial,sans-serif;color:#16130F">
-        <span style="display:inline-block;min-width:26px;color:#8C877C;font-weight:700">${it.qty}×</span> ${line}
-      </td>
-      <td style="padding:10px 0;border-bottom:1px solid #ECEAE3;font:14px/1.4 Arial,sans-serif;color:#16130F;text-align:right;white-space:nowrap">${amt}</td>
-    </tr>`;
-  }).join('');
-}
-function ffTotalRow(label, val, opts) {
-  opts = opts || {};
-  const strong = opts.strong;
-  return `<tr>
-    <td style="padding:${strong?'12px 0 0':'4px 0'};font:${strong?'700 16px':'14px'}/1.5 Arial,sans-serif;color:${strong?'#16130F':'#5B564C'}">${label}</td>
-    <td style="padding:${strong?'12px 0 0':'4px 0'};font:${strong?'700 16px':'14px'}/1.5 Arial,sans-serif;color:#16130F;text-align:right;white-space:nowrap">${val}</td>
-  </tr>`;
-}
-// Shell común: cabecera FITFUEL, banner de color, cuerpo y footer.
-function ffEmailShell({ accent, banner, bannerEmoji, greeting, intro, o, footerNote }) {
-  const shipping = o.shipping || 0;
-  const totals =
-    (o.subtotal != null ? ffTotalRow('Subtotal', 'Q' + Number(o.subtotal).toFixed(2)) : '') +
-    ffTotalRow('Envío', shipping === 0 ? 'Gratis' : 'Q' + Number(shipping).toFixed(2)) +
-    (o.discount_code ? ffTotalRow('Descuento (' + ffEmailEsc(o.discount_code) + ')', '—') : '') +
-    (o.total != null ? ffTotalRow('Total', 'Q' + Number(o.total).toFixed(2), { strong: true }) : '');
-  const entrega = o.direccion
-    ? `<tr><td style="padding:18px 24px 0">
-         <div style="font:700 12px Arial,sans-serif;letter-spacing:1px;color:#8C877C;text-transform:uppercase;margin-bottom:6px">Entrega</div>
-         <div style="font:14px/1.5 Arial,sans-serif;color:#16130F">${ffEmailEsc(o.direccion)}${o.municipio ? ', ' + ffEmailEsc(o.municipio) : ''}${o.departamento ? ', ' + ffEmailEsc(o.departamento) : ''}${o.telefono ? '<br>Tel: ' + ffEmailEsc(o.telefono) : ''}${o.pago ? '<br>Pago: ' + ffEmailEsc(o.pago) : ''}</div>
-       </td></tr>`
-    : '';
-  return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F4F2EC">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0">${ffEmailEsc(banner)} — Pedido #${ffEmailEsc(o.id)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F2EC;padding:24px 12px">
-    <tr><td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(20,19,15,.08)">
-        <!-- Cabecera -->
-        <tr><td style="background:#16130F;padding:22px 24px;text-align:center">
-          <span style="font:800 22px Arial,sans-serif;letter-spacing:4px;color:#EAE7DF">FITFUEL</span>
-        </td></tr>
-        <!-- Banner de estado -->
-        <tr><td style="background:${accent};padding:20px 24px;text-align:center">
-          <div style="font:800 20px Arial,sans-serif;color:#FFFFFF">${bannerEmoji ? bannerEmoji + ' ' : ''}${ffEmailEsc(banner)}</div>
-        </td></tr>
-        <!-- Saludo + intro -->
-        <tr><td style="padding:24px 24px 0">
-          <div style="font:700 18px Arial,sans-serif;color:#16130F;margin-bottom:6px">${ffEmailEsc(greeting)}</div>
-          <div style="font:15px/1.6 Arial,sans-serif;color:#5B564C">${ffEmailEsc(intro)}</div>
-        </td></tr>
-        <!-- Pedido -->
-        <tr><td style="padding:20px 24px 0">
-          <div style="font:700 12px Arial,sans-serif;letter-spacing:1px;color:#8C877C;text-transform:uppercase;margin-bottom:2px">Pedido</div>
-          <div style="font:800 16px Arial,sans-serif;color:${accent}">#${ffEmailEsc(o.id)}</div>
-        </td></tr>
-        <!-- Productos -->
-        <tr><td style="padding:12px 24px 0">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${ffItemRows(o.items)}</table>
-        </td></tr>
-        <!-- Totales -->
-        <tr><td style="padding:10px 24px 0">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${totals}</table>
-        </td></tr>
-        ${entrega}
-        <!-- Footer -->
-        <tr><td style="padding:26px 24px">
-          ${footerNote ? `<div style="font:13px/1.6 Arial,sans-serif;color:#8C877C;text-align:center;margin-bottom:14px">${ffEmailEsc(footerNote)}</div>` : ''}
-          <div style="border-top:1px solid #ECEAE3;padding-top:16px;text-align:center">
-            <div style="font:700 13px Arial,sans-serif;letter-spacing:3px;color:#16130F">FITFUEL</div>
-            <div style="font:12px/1.5 Arial,sans-serif;color:#A7A296;margin-top:4px">Suplementos para tu mejor versión · Guatemala</div>
-          </div>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-}
-function buildStatusEmail(o, status) {
-  const accent = STATUS_COLOR[status] || '#16130F';
-  return ffEmailShell({
-    accent,
-    banner: STATUS_LABELS[status] || status,
-    bannerEmoji: STATUS_EMOJI[status] || '',
-    greeting: 'Hola ' + (o.nombre || ''),
-    intro: STATUS_MSG[status] || '',
-    o,
-    footerNote: '¿Dudas con tu pedido? Responde a este correo y te ayudamos.',
-  });
-}
-function buildOrderText(o, status) {
-  const itemLines = (o.items || [])
-    .map(it => `${it.qty}× ${it.name}${it.flavor ? ' (' + it.flavor + ')' : ''} — Q${((it.price || 0) * it.qty).toFixed(2)}`)
-    .join('\n');
-  const shipping = o.shipping || 0;
-  return `Estado: ${STATUS_LABELS[status] || status}\n${STATUS_MSG[status] || ''}\n\n` +
-    `Pedido: #${o.id}\n\n` +
-    (itemLines ? `PRODUCTOS:\n${itemLines}\n\n` : '') +
-    (o.subtotal != null ? `Subtotal: Q${Number(o.subtotal).toFixed(2)}\n` : '') +
-    `Envío: ${shipping === 0 ? 'Gratis' : 'Q' + Number(shipping).toFixed(2)}\n` +
-    (o.total != null ? `TOTAL: Q${Number(o.total).toFixed(2)}\n` : '') +
-    (o.direccion ? `\nENTREGA:\n${o.direccion}${o.municipio ? ', ' + o.municipio : ''}${o.departamento ? ', ' + o.departamento : ''}` : '');
-}
+// ── Aviso al cliente cuando cambia el estado del pedido ──────────────────────
+// El correo lo arma y lo envía la Cloudflare Function /api/order-confirmation, la misma
+// que manda la confirmación de compra. Antes esto salía por EmailJS desde aquí, con su
+// plantilla propia y su clave pública en este HTML: dos proveedores, dos diseños que
+// mantener y un tope de 200 correos al mes. Ahora sale por Resend desde
+// pedidos@fitfuelgt.com, con la clave guardada como secreto del servidor.
+//
+// Nunca bloquea la operación: si el correo falla, el estado ya quedó guardado igual.
+// Nota: en desarrollo local (`npm run dev`) no existe /api/, así que no se envía nada;
+// solo funciona en el sitio desplegado.
 
 async function notifyStatus(o, status) {
-  const msg = STATUS_MSG[status];
-  if (!msg || !o || !o.correo) return;
-  const html = buildStatusEmail(o, status);
+  // "pendiente" es el estado con el que nace el pedido: no se avisa de eso.
+  if (!o || !o.correo || status === 'pendiente') return;
   try {
-    await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    const res = await fetch('/api/order-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        service_id: EMAILJS.service, template_id: EMAILJS.template, user_id: EMAILJS.publicKey,
-        template_params: {
-          to_email: o.correo, to_name: o.nombre || 'Cliente', name: o.nombre || 'Cliente',
-          order_id: o.id,
-          subject: (STATUS_SUBJECT[status] ? STATUS_SUBJECT[status](o.id) : `Actualización de tu pedido #${o.id}`),
-          html_body: html,
-          // Compatibilidad: si la plantilla aún usa {{order_details}}, cae a texto plano.
-          order_details: buildOrderText(o, status),
-          message: '',
-        },
+        type: 'status', status,
+        id: o.id, correo: o.correo, nombre: o.nombre,
+        date: o.date ? fmtDate(o.date) : '',
+        items: o.items, subtotal: o.subtotal, shipping: o.shipping, total: o.total,
+        discount_code: o.discount_code,
+        direccion: o.direccion, municipio: o.municipio, departamento: o.departamento,
+        telefono: o.telefono, pago: o.pago,
       }),
     });
+    const out = await res.json().catch(() => ({}));
+    if (!out.ok) toast('El estado se guardó, pero no salió el correo al cliente' + (out.error ? ' (' + out.error + ')' : ''), true);
   } catch (e) { /* no bloquea la operación */ }
 }
 

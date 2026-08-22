@@ -171,9 +171,9 @@ function UserMenu({ user, onClose }) {
           </div>
         </div>
         <nav className="umenu-nav">
-          <a href="#/cuenta" onClick={onClose}><Icon name="user" size={15} /> Mi cuenta</a>
-          <a href="#/cuenta/pedidos" onClick={onClose}><Icon name="package" size={15} /> Mis pedidos</a>
-          <a href="#/cuenta/favoritos" onClick={onClose}><Icon name="heart" size={15} /> Favoritos</a>
+          <a href="/cuenta" onClick={onClose}><Icon name="user" size={15} /> Mi cuenta</a>
+          <a href="/cuenta/pedidos" onClick={onClose}><Icon name="package" size={15} /> Mis pedidos</a>
+          <a href="/cuenta/favoritos" onClick={onClose}><Icon name="heart" size={15} /> Favoritos</a>
         </nav>
         <button className="btn btn-ghost btn-block btn-sm" onClick={handleLogout}>
           Cerrar sesión

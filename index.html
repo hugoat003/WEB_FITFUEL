@@ -1,17 +1,63 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="voltage">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FITFUEL</title>
+<title>FITFUEL — Suplementos para rendir | Guatemala</title>
+<meta name="description" content="Suplementos deportivos testados en laboratorio y 100% originales. Proteína, creatina y pre-entreno con envío a toda Guatemala. Precios en quetzales." />
+<meta name="theme-color" content="#141210" />
+<meta property="og:title" content="FITFUEL — Suplementos para rendir" />
+<meta property="og:description" content="Proteína, creatina y pre-entreno originales. Envío a toda Guatemala." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://fitfuelgt.com/logo-mark.png" />
+<meta property="og:url" content="https://fitfuelgt.com/" />
+<meta name="twitter:card" content="summary" />
+<link rel="canonical" href="https://fitfuelgt.com/" />
+<link rel="icon" href="/logo-mark.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 <script>
-  // Redirige a la app principal conservando query params y hash
-  // (el hash trae el token de OAuth: #access_token=... tras login con Google).
+  // Compatibilidad con los enlaces antiguos: la tienda usaba rutas por hash
+  // (fitfuelgt.com/#/producto/whey-vainilla). Los que ya se compartieron por WhatsApp o
+  // están guardados en marcadores siguen llegando así, y se reescriben aquí a la ruta real
+  // ANTES de que arranque la app. Solo se tocan los hashes que empiezan por "#/": el
+  // "#access_token=..." con el que vuelve el login de Google se deja intacto.
   (function () {
-    var dest = "./FITFUEL.html" + window.location.search + window.location.hash;
-    window.location.replace(dest);
+    var h = window.location.hash;
+    if (h && h.indexOf("#/") === 0) {
+      var dest = h.slice(1) + window.location.search;
+      window.history.replaceState({}, "", dest);
+    }
   })();
 </script>
 </head>
-<body></body>
+<body>
+<!-- Pantalla de carga: va en el HTML inicial, así que se ve en cuanto llega la primera
+     respuesta, sin esperar a los 336 KB del bundle. React la sustituye al montar. -->
+<style>
+  #ff-boot{position:fixed;inset:0;display:grid;place-items:center;gap:18px;
+    align-content:center;background:#141210;z-index:9999}
+  #ff-boot span{font:800 15px/1 Archivo,system-ui,sans-serif;letter-spacing:.42em;
+    text-indent:.42em;color:#EAE7DF;opacity:.9}
+  #ff-boot i{display:block;width:120px;height:2px;border-radius:2px;
+    background:rgba(234,231,223,.14);overflow:hidden}
+  #ff-boot i::after{content:"";display:block;width:40%;height:100%;border-radius:2px;
+    background:#C6F24E;animation:ff-boot-slide 1.1s cubic-bezier(.4,0,.6,1) infinite}
+  @keyframes ff-boot-slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+  @media (prefers-reduced-motion:reduce){
+    #ff-boot i::after{animation:none;width:100%;opacity:.5}
+  }
+</style>
+<div id="root">
+  <div id="ff-boot" role="status" aria-live="polite" aria-label="Cargando FITFUEL">
+    <span>FITFUEL</span><i></i>
+  </div>
+</div>
+
+<!-- Catálogo y defaults (script clásico; provee window.FF antes del módulo) -->
+<script src="/data.js"></script>
+<!-- App (bundle de Vite) -->
+<script type="module" src="/main.jsx"></script>
+</body>
 </html>

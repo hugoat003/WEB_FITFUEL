@@ -8,9 +8,15 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "marquee": true
 }/*EDITMODE-END*/;
 
+// Índice de artículos comprables (productos + packs). Se muta EN SITIO al llegar el
+// catálogo publicado, para que las clausuras que ya lo capturaron sigan viendo lo mismo.
 const ITEM_INDEX = {};
-FF.PRODUCTS.forEach((p) => { ITEM_INDEX[p.id] = { id: p.id, name: p.name, flavor: p.flavor, price: p.price, hue: p.hue, image: p.image, cat: p.cat, variants: FF.variantsOf(p), stock: p.stock }; });
-FF.BUNDLES.forEach((b) => { ITEM_INDEX[b.id] = { id: b.id, name: b.name, flavor: "Pack · " + b.items.length + " productos", price: b.price, hue: b.hue, image: b.image, cat: "pack" }; });
+function buildItemIndex() {
+  Object.keys(ITEM_INDEX).forEach((k) => delete ITEM_INDEX[k]);
+  (FF.PRODUCTS || []).forEach((p) => { ITEM_INDEX[p.id] = { id: p.id, name: p.name, flavor: p.flavor, price: p.price, hue: p.hue, image: p.image, cat: p.cat, variants: FF.variantsOf(p), stock: p.stock }; });
+  (FF.BUNDLES || []).forEach((b) => { ITEM_INDEX[b.id] = { id: b.id, name: b.name, flavor: "Pack · " + b.items.length + " productos", price: b.price, hue: b.hue, image: b.image, cat: "pack" }; });
+}
+buildItemIndex();
 
 const PAGE_TITLES = {
   "": "FITFUEL — Suplementos para rendir | Guatemala",
@@ -50,7 +56,7 @@ class ErrorBoundary extends React.Component {
           <div className="ff-wrap ff-narrow" style={{ textAlign: "center", padding: "70px 0" }}>
             <h1 className="display" style={{ fontSize: "clamp(40px,9vw,80px)", color: "var(--accent)" }}>Ups</h1>
             <p style={{ color: "var(--text-dim)", margin: "0 0 24px" }}>Algo salió mal en esta sección. Intenta volver al inicio.</p>
-            <a className="btn btn-primary btn-lg" href="#/">Volver al inicio <Icon name="arrow" size={18} /></a>
+            <a className="btn btn-primary btn-lg" href="/">Volver al inicio <Icon name="arrow" size={18} /></a>
           </div>
         </section>
       );
@@ -107,6 +113,21 @@ function App() {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [recoveryOpen, setRecoveryOpen] = React.useState(false);
   const [promoBanner, setPromoBanner] = React.useState(false);
+  // `catalogReady` pasa a true cuando la carga remota termina (con éxito o no). Hasta
+  // entonces la app pinta con el catálogo local en vez de esperar a la red.
+  const [catalogReady, setCatalogReady] = React.useState(false);
+  const [, setCatalogVersion] = React.useState(0);
+  React.useEffect(() => {
+    const onCatalog = () => {
+      buildItemIndex();
+      setCatalogVersion((v) => v + 1); // repinta con los productos e imágenes publicados
+      setCatalogReady(true);
+    };
+    window.addEventListener("ff:catalog", onCatalog);
+    // Si el evento se disparó antes de montar este listener, no nos quedamos esperando.
+    if (window.__ffCatalogSettled) onCatalog();
+    return () => window.removeEventListener("ff:catalog", onCatalog);
+  }, []);
   React.useEffect(() => {
     const dismissedAt = Number(load("ff_promo_dismissed", 0));
     if (dismissedAt && Date.now() - dismissedAt < 7 * 864e5) return; // no reaparece por 7 días
@@ -165,21 +186,56 @@ function App() {
   // Scroll al inicio en cada cambio de ruta
   React.useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, [route.path]);
 
-  // Título del documento según la ruta (producto/pack/artículo usan su nombre)
+  // Metadatos del documento según la ruta. El HTML que entrega el servidor ya trae los
+  // correctos para cada URL (los genera prerender.js), pero al navegar dentro de la app no
+  // hay recarga: hay que mantenerlos al día para la pestaña del navegador, para quien
+  // comparta el enlace y para los rastreadores que sí ejecutan JavaScript.
   React.useEffect(() => {
     const seg = route.parts[0] || "";
     let title = PAGE_TITLES[seg] || "FITFUEL";
+    let known = seg in PAGE_TITLES || seg === "cuenta";
     if (seg === "producto" && route.parts[1]) {
       const p = FF.PRODUCTS.find((x) => x.id === route.parts[1]);
+      known = !!p;
       if (p) title = `${p.name} · ${p.flavor} — FITFUEL`;
     } else if (seg === "pack" && route.parts[1]) {
       const b = FF.BUNDLES.find((x) => x.id === route.parts[1]);
+      known = !!b;
       if (b) title = `${b.name} — FITFUEL`;
     } else if (seg === "blog" && route.parts[1]) {
       const a = FF.BLOG.find((x) => x.id === route.parts[1]);
+      known = !!a;
       if (a) title = `${a.title} — FITFUEL`;
+    } else if (seg === "ayuda") {
+      known = !!CONTENT_PAGES[route.parts[1]];
     }
     document.title = title;
+
+    const head = document.head;
+    const upsert = (selector, create) => {
+      let el = head.querySelector(selector);
+      if (!el) { el = create(); head.appendChild(el); }
+      return el;
+    };
+    const url = window.location.origin + route.path;
+    upsert('link[rel="canonical"]', () => {
+      const l = document.createElement("link"); l.rel = "canonical"; return l;
+    }).setAttribute("href", url);
+    const og = head.querySelector('meta[property="og:url"]');
+    if (og) og.setAttribute("content", url);
+
+    // El servidor devuelve 200 con la app para cualquier URL (es una SPA), así que una
+    // dirección inventada no da un 404 de verdad. Sin esto, Google indexaría basura.
+    // Checkout y cuenta tampoco tienen nada que buscar.
+    const noindex = !known || seg === "checkout" || seg === "cuenta";
+    const robots = head.querySelector('meta[name="robots"]');
+    if (noindex) {
+      upsert('meta[name="robots"]', () => {
+        const m = document.createElement("meta"); m.name = "robots"; return m;
+      }).setAttribute("content", "noindex,follow");
+    } else if (robots) {
+      robots.remove();
+    }
   }, [route.path]);
 
   const toast = (msg) => {
@@ -240,18 +296,23 @@ function App() {
   // Limpia items cuyo id ya no existe, o cuya presentación (vf) ya no coincide con
   // ninguna variante actual (ej. tras editar variantes en el admin). Evita cobrar
   // silenciosamente el precio base de una presentación que ya no existe.
+  // Se ejecuta solo cuando el catálogo definitivo ya llegó: hacerlo antes borraría del
+  // carrito productos que existen en el catálogo publicado pero no en el local.
+  const cartCleaned = React.useRef(false);
   React.useEffect(() => {
-    const valid = cart.filter((x) => {
-      const base = ITEM_INDEX[x.id];
-      if (!base) return false;
-      if (x.vf) return (base.variants || []).some((vv) => FF.variantLabel(vv) === x.vf);
-      return true;
+    if (!catalogReady || cartCleaned.current) return;
+    cartCleaned.current = true;
+    setCart((prev) => {
+      const valid = prev.filter((x) => {
+        const base = ITEM_INDEX[x.id];
+        if (!base) return false;
+        if (x.vf) return (base.variants || []).some((vv) => FF.variantLabel(vv) === x.vf);
+        return true;
+      });
+      if (valid.length !== prev.length) toast("Actualizamos tu carrito: quitamos productos no disponibles.");
+      return valid.length === prev.length ? prev : valid;
     });
-    if (valid.length !== cart.length) {
-      setCart(valid);
-      toast("Actualizamos tu carrito: quitamos productos no disponibles.");
-    }
-  }, []);
+  }, [catalogReady]);
 
   const cartCount = cart.reduce((s, x) => s + x.qty, 0);
   const cartItems = cart.map((x) => {

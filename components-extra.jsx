@@ -20,7 +20,7 @@ function Bundles({ onAddBundle, compact = false }) {
             return (
               <article className="bcard" key={b.id} style={{ "--ph-color": color }}>
                 <div className="bcard-glow" />
-                <a className="bcard-link" href={"#/pack/" + b.id} aria-label={"Ver " + b.name} />
+                <a className="bcard-link" href={"/pack/" + b.id} aria-label={"Ver " + b.name} />
                 <span className="save-tag" style={{ position: "relative" }}>AHORRA {save}%</span>
                 <h3>{b.name}</h3>
                 <p className="tagline">{b.tagline}</p>
@@ -29,7 +29,7 @@ function Bundles({ onAddBundle, compact = false }) {
                     <li key={i}><span className="tick"><Icon name="check" size={16} stroke={3} /></span>{it}</li>
                   ))}
                 </ul>
-                <a className="bcard-see" href={"#/pack/" + b.id}>Ver productos del pack <Icon name="arrow" size={15} /></a>
+                <a className="bcard-see" href={"/pack/" + b.id}>Ver productos del pack <Icon name="arrow" size={15} /></a>
                 <div className="bcard-foot">
                   <div className="price">
                     <b>{money(b.price)}</b>
@@ -67,7 +67,7 @@ function Testimonials({ compact = false }) {
             <h2 className="display">Reseñas de clientes</h2>
           </div>
           {compact && (
-            <a className="btn btn-ghost" href="#/resenas">Ver todas <Icon name="arrow" size={18} /></a>
+            <a className="btn btn-ghost" href="/resenas">Ver todas <Icon name="arrow" size={18} /></a>
           )}
         </div>
         <div className="tgrid">
@@ -101,12 +101,12 @@ function Blog({ compact = false }) {
             <p>Ciencia aplicada al gimnasio, explicada fácil.</p>
           </div>
           {compact && (
-            <a className="btn btn-ghost" href="#/blog">Ver todo el blog <Icon name="arrow" size={18} /></a>
+            <a className="btn btn-ghost" href="/blog">Ver todo el blog <Icon name="arrow" size={18} /></a>
           )}
         </div>
         <div className="blog-grid">
           {FF.BLOG.map((b) => (
-            <a className="bl" key={b.id} href={"#/blog/" + b.id}>
+            <a className="bl" key={b.id} href={"/blog/" + b.id}>
               <div className="bl-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
               <div className="bl-body">
                 <span className="bl-tag">{b.cat}</span>
@@ -150,7 +150,7 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
             <div className="drawer-body">
               {items.map((it) => (
                 <div className="citem" key={it.id + (it.vf || '')}>
-                  <a className="citem-vis" href={"#/producto/" + it.id} onClick={onClose}><ProdImg image={it.image} label="" hue={it.hue} tub={true} /></a>
+                  <a className="citem-vis" href={"/producto/" + it.id} onClick={onClose}><ProdImg image={it.image} label="" hue={it.hue} tub={true} /></a>
                   <div className="citem-main">
                     <b>{it.name}</b>
                     <span>{it.flavor}</span>
@@ -237,7 +237,7 @@ function Footer() {
       <div className="ff-wrap">
         <div className="foot-grid">
           <div>
-            <a className="logo" href="#/" style={{ marginBottom: 14 }}>
+            <a className="logo" href="/" style={{ marginBottom: 14 }}>
               <img src="/logo-full.png" alt="FITFUEL" className="logo-png" />
             </a>
             <p style={{ color: "var(--text-dim)", maxWidth: 280, fontSize: 15 }}>
@@ -251,16 +251,16 @@ function Footer() {
           {FOOT_COLS.map((col) => (
             <div key={col.h}>
               <h5>{col.h}</h5>
-              {col.links.map((l) => <a key={l.label} href={"#" + l.to}>{l.label}</a>)}
+              {col.links.map((l) => <a key={l.label} href={toPath(l.to)}>{l.label}</a>)}
             </div>
           ))}
         </div>
         <div className="foot-bottom">
           <span>© 2026 FITFUEL Guatemala · Todos los derechos reservados.</span>
           <span className="foot-legal" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <a href="#/privacidad" style={{ color: "inherit" }}>Privacidad</a>
-            <a href="#/terminos" style={{ color: "inherit" }}>Términos</a>
-            <a href="#/cookies" style={{ color: "inherit" }}>Cookies</a>
+            <a href="/privacidad" style={{ color: "inherit" }}>Privacidad</a>
+            <a href="/terminos" style={{ color: "inherit" }}>Términos</a>
+            <a href="/cookies" style={{ color: "inherit" }}>Cookies</a>
           </span>
           <span>Hecho para rendir</span>
         </div>

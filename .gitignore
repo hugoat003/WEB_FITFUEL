@@ -21,3 +21,7 @@ Imagenes productos/
 # Herramientas de Claude Code (no son parte del proyecto)
 .claude/
 .impeccable/
+
+# Documentos de trabajo (catálogos de proveedor, propuestas). Son decenas de MB y, una vez
+# comiteados, se quedan en el historial para siempre aunque se borren después.
+*.pdf

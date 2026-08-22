@@ -31,12 +31,12 @@ function Header({ cartCount, bump, onCart, query, setQuery, route, user, onAuthO
         <button className="icon-btn hd-burger" aria-label="Menú" onClick={() => setMenuOpen((v) => !v)}>
           <Icon name={menuOpen ? "x" : "menu"} size={20} />
         </button>
-        <a className="logo" href="#/" onClick={() => setMenuOpen(false)}>
+        <a className="logo" href="/" onClick={() => setMenuOpen(false)}>
           <img src="/logo-full.png" alt="FITFUEL" className="logo-png" />
         </a>
         <nav className="hd-nav">
           {NAV_LINKS.map((l) => (
-            <a key={l.to} href={"#" + l.to} className={isActive(l.to) ? "on" : ""}>{l.label}</a>
+            <a key={l.to} href={toPath(l.to)} className={isActive(l.to) ? "on" : ""}>{l.label}</a>
           ))}
         </nav>
         <div className="hd-spacer" />
@@ -66,12 +66,12 @@ function Header({ cartCount, bump, onCart, query, setQuery, route, user, onAuthO
         </form>
         <nav className="m-nav">
           {NAV_LINKS.map((l) => (
-            <a key={l.to} href={"#" + l.to} className={isActive(l.to) ? "on" : ""}>
+            <a key={l.to} href={toPath(l.to)} className={isActive(l.to) ? "on" : ""}>
               {l.label} <Icon name="chevron" size={18} />
             </a>
           ))}
-          <a href="#/resenas">Reseñas <Icon name="chevron" size={18} /></a>
-          <a href="#/ayuda/faq">Ayuda <Icon name="chevron" size={18} /></a>
+          <a href="/resenas">Reseñas <Icon name="chevron" size={18} /></a>
+          <a href="/ayuda/faq">Ayuda <Icon name="chevron" size={18} /></a>
         </nav>
       </div>
     </header>
@@ -141,7 +141,7 @@ function Hero() {
           </div>
         </div>
         <div className="ehero-media">
-          <a href={"#/producto/" + p.id} className="ehero-stage" key={"m" + idx} aria-label={p.name}>
+          <a href={"/producto/" + p.id} className="ehero-stage" key={"m" + idx} aria-label={p.name}>
             <ProdImg image={p.image} label="producto destacado" hue={p.hue} tub={true} />
           </a>
           <button className="ehero-nav prev" onClick={() => go(idx - 1)} aria-label="Producto anterior">
@@ -210,7 +210,7 @@ function ProductCard({ p, onAdd, onQuick, fav, toggleFav }) {
           onClick={(e) => { e.stopPropagation(); toggleFav(p.id); }} aria-label="Favorito">
           <Icon name="heart" size={17} fill={fav} stroke={fav ? 0 : 2} />
         </button>
-        <a href={"#/producto/" + p.id} className="pcard-link" aria-label={p.name} onClick={(e) => e.stopPropagation()}>
+        <a href={"/producto/" + p.id} className="pcard-link" aria-label={p.name} onClick={(e) => e.stopPropagation()}>
           <ProdImg image={p.image} label="foto producto" hue={p.hue} tub={true} />
         </a>
         <div className="pcard-quick">

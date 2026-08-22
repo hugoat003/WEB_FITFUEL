@@ -17,13 +17,31 @@ async function sendClientConfirmation(orderData) {
   });
 }
 
+// ── Aviso a la tienda de que entró un pedido ────────────────────────────────
+// Se lanza DESPUÉS de que el pedido ya está guardado en Supabase, y nunca bloquea:
+// si este correo falla, el pedido sigue estando en el panel de administración.
+async function notifyNewOrder(orderData, detalle) {
+  if (!orderData) return;
+  await fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      access_key: WEB3FORMS_KEY,
+      subject: `Nuevo pedido FITFUEL #${orderData.id}`,
+      name: orderData.nombre,
+      email: orderData.correo,
+      message: detalle,
+    }),
+  });
+}
+
 function Breadcrumb({ items }) {
   return (
     <nav className="crumb">
       {items.map((it, i) => (
         <span key={i}>
           {it.to && i < items.length - 1
-            ? <a href={"#" + it.to}>{it.label}</a>
+            ? <a href={toPath(it.to)}>{it.label}</a>
             : <b>{it.label}</b>}
           {i < items.length - 1 && <Icon name="chevron" size={14} />}
         </span>
@@ -82,11 +100,11 @@ function HomePage({ ctx }) {
               <h2 className="ecats-title">Compra por<br />categoría</h2>
               <span className="ecats-count">{String(cats.length).padStart(2, "0")} categorías</span>
             </div>
-            <a className="btn btn-ghost" href="#/catalogo">Ir a categorías <Icon name="arrow" size={18} /></a>
+            <a className="btn btn-ghost" href="/catalogo">Ir a categorías <Icon name="arrow" size={18} /></a>
           </div>
           <div className="ecats-grid">
             {cats.map((c, i) => (
-              <a key={c.id} className="ecat" href={"#/catalogo?cat=" + c.id}>
+              <a key={c.id} className="ecat" href={"/catalogo?cat=" + c.id}>
                 <Ph label={c.label} hue={catHues[i % catHues.length]} tub={true} />
                 <div className="ecat-grad" />
                 <span className="ecat-n">{String(i + 1).padStart(2, "0")}</span>
@@ -107,7 +125,7 @@ function HomePage({ ctx }) {
               <h2 className="display">Los más vendidos</h2>
               <p>Nuestra selección de productos para empezar con todo.</p>
             </div>
-            <a className="btn btn-ghost" href="#/catalogo">Ver catálogo <Icon name="arrow" size={18} /></a>
+            <a className="btn btn-ghost" href="/catalogo">Ver catálogo <Icon name="arrow" size={18} /></a>
           </div>
           <div className="pgrid">
             {featured.map((p) => (
@@ -162,7 +180,7 @@ function GoalsPage({ ctx }) {
                 <span className="eyebrow">Recomendado para ti</span>
                 <h2 className="display">Tu selección</h2>
               </div>
-              <a className="btn btn-primary" href="#/catalogo">Ver todo el catálogo <Icon name="arrow" size={18} /></a>
+              <a className="btn btn-primary" href="/catalogo">Ver todo el catálogo <Icon name="arrow" size={18} /></a>
             </div>
             <div className="pgrid">
               {recs.map((p) => (
@@ -249,10 +267,10 @@ function ProductPage({ ctx, route }) {
               <button className="dp-iconbtn" onClick={() => setMenuOpen(true)} aria-label="Menú"><Icon name="menu" size={20} stroke={1.8} /></button>
               <span className="dp-nav-label dp-mono">:: Catálogo</span>
             </div>
-            <a href="#/" aria-label="Inicio"><img src="/logo-full.png" alt="FITFUEL" className="dp-logo" /></a>
+            <a href="/" aria-label="Inicio"><img src="/logo-full.png" alt="FITFUEL" className="dp-logo" /></a>
             <div className="dp-nav-r">
               {ctx.user
-                ? <a href="#/cuenta" className="dp-nav-link dp-mono">{(ctx.user.email || "").split("@")[0] || "Mi cuenta"}</a>
+                ? <a href="/cuenta" className="dp-nav-link dp-mono">{(ctx.user.email || "").split("@")[0] || "Mi cuenta"}</a>
                 : <button className="dp-nav-link dp-mono" onClick={ctx.openAuth}>Iniciar sesión</button>}
               <button className="dp-cart" onClick={ctx.openCart} aria-label="Carrito">
                 <Icon name="cart" size={20} stroke={1.6} />
@@ -262,7 +280,7 @@ function ProductPage({ ctx, route }) {
           </div>
 
           <div className="dp-crumb dp-mono">
-            <a href="#/">Inicio</a> &nbsp;·&nbsp; <a href="#/catalogo">Catálogo</a> &nbsp;·&nbsp; <b>{p.name}</b>
+            <a href="/">Inicio</a> &nbsp;·&nbsp; <a href="/catalogo">Catálogo</a> &nbsp;·&nbsp; <b>{p.name}</b>
           </div>
 
           <div className="dp-grid">
@@ -397,10 +415,10 @@ function ProductPage({ ctx, route }) {
                 <button className="dp-iconbtn" onClick={() => setMenuOpen(false)} aria-label="Cerrar"><Icon name="x" size={20} /></button>
               </div>
               <div className="dp-drawer-nav">
-                <a href="#/" onClick={() => setMenuOpen(false)}>Inicio</a>
-                <a href="#/catalogo" onClick={() => setMenuOpen(false)}>Catálogo</a>
-                <a href="#/packs" onClick={() => setMenuOpen(false)}>Packs</a>
-                <a href="#/contacto" onClick={() => setMenuOpen(false)}>Contacto</a>
+                <a href="/" onClick={() => setMenuOpen(false)}>Inicio</a>
+                <a href="/catalogo" onClick={() => setMenuOpen(false)}>Catálogo</a>
+                <a href="/packs" onClick={() => setMenuOpen(false)}>Packs</a>
+                <a href="/contacto" onClick={() => setMenuOpen(false)}>Contacto</a>
               </div>
             </div>
           </div>
@@ -423,13 +441,13 @@ function ProductPage({ ctx, route }) {
           <div className="dp-card">
             <h3 className="dp-arch">Envíos</h3>
             <p>Entregamos de lunes a viernes en 2 a 3 días hábiles. Envío gratis en pedidos desde {money(FF.FREE_SHIP)} a toda Guatemala.</p>
-            <a href="#/ayuda/envios" className="dp-card-link dp-mono">Ver detalles</a>
+            <a href="/ayuda/envios" className="dp-card-link dp-mono">Ver detalles</a>
           </div>
           <div className="dp-card">
             <div className="dp-card-faq-body">
               <h3 className="dp-arch">Preguntas frecuentes</h3>
               <p>Resuelve tus dudas sobre uso, dosis y modo de preparación en nuestra sección de ayuda.</p>
-              <a href="#/ayuda/faq" className="dp-card-link dp-mono">Ver detalles</a>
+              <a href="/ayuda/faq" className="dp-card-link dp-mono">Ver detalles</a>
             </div>
             <div className="dp-card-img"><ProdImg image={p.image} label="" hue={p.hue} tub={true} /></div>
             <div className="dp-card-fade" />
@@ -441,14 +459,14 @@ function ProductPage({ ctx, route }) {
           <section className="dp-rel" id="related">
             <div className="dp-rel-head">
               <h2 className="dp-arch">También te<br />puede interesar</h2>
-              <a href="#/catalogo" className="dp-rel-cta">
+              <a href="/catalogo" className="dp-rel-cta">
                 <span className="ic"><Icon name="arrow" size={18} style={{ transform: "rotate(-45deg)" }} /></span>
                 <span className="lbl dp-mono">Ver<br />catálogo</span>
               </a>
             </div>
             <div className="dp-rel-grid">
               {related.map((rp) => (
-                <a key={rp.id} href={"#/producto/" + rp.id} className="dp-rel-card">
+                <a key={rp.id} href={"/producto/" + rp.id} className="dp-rel-card">
                   <ProdImg image={rp.image} label={rp.name} hue={rp.hue} tub={true} className="dp-rel-img" />
                   <div className="grad" />
                   <span className="dp-rel-price dp-mono">{money(rp.price)}</span>
@@ -463,22 +481,22 @@ function ProductPage({ ctx, route }) {
         <footer className="dp-foot" id="footer">
           <div className="dp-foot-grid">
             <div>
-              <a href="#/"><img src="/logo-full.png" alt="FITFUEL" className="dp-logo" style={{ opacity: .95 }} /></a>
+              <a href="/"><img src="/logo-full.png" alt="FITFUEL" className="dp-logo" style={{ opacity: .95 }} /></a>
               <div className="dp-foot-links">
                 <div className="dp-foot-col">
                   <div className="dp-foot-col-h dp-mono">Navegación</div>
-                  <a href="#/">Inicio</a>
-                  <a href="#/catalogo">Catálogo</a>
-                  <a href="#/nosotros">Sobre FITFUEL</a>
-                  <a href="#/ayuda/envios">Envíos</a>
-                  <a href="#/contacto">Contacto</a>
+                  <a href="/">Inicio</a>
+                  <a href="/catalogo">Catálogo</a>
+                  <a href="/nosotros">Sobre FITFUEL</a>
+                  <a href="/ayuda/envios">Envíos</a>
+                  <a href="/contacto">Contacto</a>
                 </div>
                 <div className="dp-foot-col">
                   <div className="dp-foot-col-h dp-mono">Catálogo</div>
-                  <a href="#/catalogo?cat=proteina">Proteínas</a>
-                  <a href="#/catalogo?cat=creatina">Creatina</a>
-                  <a href="#/catalogo?cat=pre">Pre-Entreno</a>
-                  <a href="#/catalogo">Ver todo</a>
+                  <a href="/catalogo?cat=proteina">Proteínas</a>
+                  <a href="/catalogo?cat=creatina">Creatina</a>
+                  <a href="/catalogo?cat=pre">Pre-Entreno</a>
+                  <a href="/catalogo">Ver todo</a>
                 </div>
               </div>
             </div>
@@ -504,7 +522,7 @@ function ProductPage({ ctx, route }) {
             </div>
           </div>
           <div className="dp-foot-bottom">
-            <div className="sm dp-mono"><a href="#/privacidad" style={{ color: "inherit" }}>Política de privacidad</a><br /><a href="#/terminos" style={{ color: "inherit" }}>Términos y condiciones</a></div>
+            <div className="sm dp-mono"><a href="/privacidad" style={{ color: "inherit" }}>Política de privacidad</a><br /><a href="/terminos" style={{ color: "inherit" }}>Términos y condiciones</a></div>
             <div className="sm dp-mono">© 2026 FITFUEL</div>
             <a href="#top" className="dp-round" aria-label="Volver arriba"><Icon name="arrow" size={16} style={{ transform: "rotate(-90deg)" }} /></a>
             <span className="dp-foot-brand">FITFUEL</span>
@@ -525,7 +543,7 @@ function BlogPage() {
         <PageHead eyebrow="Aprende" title="Blog FITFUEL" sub="Ciencia aplicada al gimnasio, explicada fácil." />
         <div className="blog-grid">
           {FF.BLOG.map((b) => (
-            <a className="bl" key={b.id} href={"#/blog/" + b.id}>
+            <a className="bl" key={b.id} href={"/blog/" + b.id}>
               <div className="bl-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
               <div className="bl-body">
                 <span className="bl-tag">{b.cat}</span>
@@ -557,14 +575,14 @@ function BlogPostPage({ route }) {
         <article className="article-body">
           {(b.body || [b.excerpt]).map((par, i) => <p key={i}>{par}</p>)}
         </article>
-        <a className="btn btn-ghost" href="#/blog"><Icon name="back" size={18} /> Volver al blog</a>
+        <a className="btn btn-ghost" href="/blog"><Icon name="back" size={18} /> Volver al blog</a>
 
         {others.length > 0 && (
           <div className="article-more">
             <h3 className="display">Sigue leyendo</h3>
             <div className="blog-grid">
               {others.map((o) => (
-                <a className="bl" key={o.id} href={"#/blog/" + o.id}>
+                <a className="bl" key={o.id} href={"/blog/" + o.id}>
                   <div className="bl-vis"><ProdImg image={o.image} label="imagen artículo" hue={o.hue} /></div>
                   <div className="bl-body">
                     <span className="bl-tag">{o.cat}</span>
@@ -930,7 +948,7 @@ function ContentPage({ data, ctx }) {
             {FF.FAQ.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} />)}
             <div className="faq-cta">
               <p>¿No encuentras tu respuesta?</p>
-              <a className="btn btn-primary" href="#/contacto">Contáctanos <Icon name="arrow" size={18} /></a>
+              <a className="btn btn-primary" href="/contacto">Contáctanos <Icon name="arrow" size={18} /></a>
             </div>
           </div>
         ) : (
@@ -943,7 +961,7 @@ function ContentPage({ data, ctx }) {
             ))}
           </div>
         )}
-        <a className="btn btn-ghost" href="#/" style={{ marginTop: 30 }}><Icon name="back" size={18} /> Volver al inicio</a>
+        <a className="btn btn-ghost" href="/" style={{ marginTop: 30 }}><Icon name="back" size={18} /> Volver al inicio</a>
       </div>
     </section>
   );
@@ -1074,7 +1092,15 @@ function CheckoutPage({ ctx }) {
     setPromoLoading(true); setPromoErr(""); setPromo(null);
     const { data, error } = await sb.from("promo_codes").select("*").eq("code", code).eq("active", true).single();
     if (error || !data) { setPromoErr("Código inválido o expirado"); setPromoLoading(false); return; }
-    if (data.first_purchase_only && user) {
+    // Los códigos de primera compra EXIGEN sesión. Sin este bloque, quien compraba como
+    // invitado podía usar BIENVENIDO10 en todos sus pedidos: no había con qué contar sus
+    // compras previas. El servidor lo vuelve a comprobar en place_order (CODIGO_REQUIERE_CUENTA).
+    if (data.first_purchase_only) {
+      if (!user) {
+        setPromoErr("Este código es solo para la primera compra. Crea tu cuenta gratis o inicia sesión para usarlo.");
+        setPromoLoading(false);
+        return;
+      }
       const { count } = await sb.from("orders").select("*", { count: "exact", head: true }).eq("user_id", user.id);
       if (count > 0) { setPromoErr("Este código es solo para tu primera compra"); setPromoLoading(false); return; }
     }
@@ -1102,7 +1128,11 @@ function CheckoutPage({ ctx }) {
     if (over) { ctx.toast(`Sin stock suficiente de ${over.name}. Ajusta la cantidad.`); return; }
     const f = new FormData(e.target);
     const g = (k) => (f.get(k) || "").toString().trim();
-    const id = "FF-" + Math.floor(100000 + Math.random() * 900000);
+    // ID de pedido: marca de tiempo en base36 (ordena cronológicamente de forma natural)
+    // + 3 caracteres al azar. El esquema anterior eran 6 dígitos aleatorios sobre 900k
+    // combinaciones: ~5% de colisión a los 300 pedidos y ~50% a los 1.100. Al ser clave
+    // primaria, una colisión le mostraba al cliente "Error al enviar" sin motivo aparente.
+    const id = "FF-" + (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 5)).toUpperCase();
     const count = items.reduce((s, it) => s + it.qty, 0);
 
     const lines = items.map((it) => `${it.qty}x ${it.name} (${it.flavor}) — ${money(it.price * it.qty)}`);
@@ -1116,20 +1146,10 @@ function CheckoutPage({ ctx }) {
 
     setSending(true);
     try {
-      const res = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          access_key: WEB3FORMS_KEY,
-          subject: `Nuevo pedido FITFUEL #${id}`,
-          name: g("nombre"),
-          email: g("correo"),
-          message: detalle,
-        }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Error al enviar");
-      // Guardar pedido en Supabase (fuente de verdad)
+      // ── 1) El pedido se registra PRIMERO ─────────────────────────────────────
+      // Es la única operación que no puede fallar en silencio. Antes el aviso por correo
+      // iba delante: si Web3Forms se caía o agotaba su cuota, el `throw` cortaba el flujo
+      // y la venta no llegaba a registrarse en ninguna parte.
       const orderPayload = {
         id, user_id: user?.id || null,
         items: items.map((it) => ({ id: it.id, name: it.name, flavor: it.flavor, qty: it.qty, price: it.price, cat: it.cat || "" })),
@@ -1140,8 +1160,6 @@ function CheckoutPage({ ctx }) {
         direccion: g("direccion"), municipio: g("municipio"), departamento: g("departamento"),
         referencia: g("referencia"), pago: g("pago"), status: "pendiente",
       };
-      // Confirmar pedido con RPC atómico (descuenta stock + inserta el pedido). Si la función
-      // aún no existe en Supabase (no corriste el SQL de inventario), usa el insert anterior.
       // Ítems para el descuento de stock: los packs se expanden a sus productos (presentación por defecto).
       const rpcItems = [];
       items.forEach((it) => {
@@ -1156,6 +1174,7 @@ function CheckoutPage({ ctx }) {
           rpcItems.push({ id: it.id, variant: it.vf || "", qty: it.qty, name: it.name });
         }
       });
+      // RPC atómico: descuenta stock, recalcula los montos en el servidor e inserta el pedido.
       const { error: rpcErr } = await sb.rpc("place_order", { p_order: orderPayload, p_items: rpcItems });
       if (rpcErr) {
         const msg = rpcErr.message || "";
@@ -1164,26 +1183,48 @@ function CheckoutPage({ ctx }) {
           ctx.toast(`Sin stock suficiente de ${prod}. Ajusta tu carrito.`);
           return; // el finally hace setSending(false); no se limpia el carrito
         }
+        if (msg.includes("CODIGO_REQUIERE_CUENTA")) {
+          ctx.toast("Ese código es solo para tu primera compra con cuenta. Inicia sesión y vuelve a intentarlo.");
+          return;
+        }
         throw rpcErr;
       }
 
-      // Guardar dirección si usuario está logueado y no tiene una guardada
+      // ── 2) Desde aquí el pedido YA existe y el stock YA se descontó ──────────
+      // Nada de lo que sigue puede caer al `catch`: si lo hiciera, el cliente vería un
+      // error, reintentaría, y acabaría con dos pedidos y el stock descontado dos veces.
+      const orderData = {
+        id, total, count, subtotal, shipping, date: new Date().toLocaleString("es-GT"),
+        nombre: g("nombre"), telefono: g("telefono"), correo: g("correo"),
+        direccion: g("direccion"), municipio: g("municipio"), departamento: g("departamento"),
+        referencia: g("referencia"), pago: g("pago"),
+        items: items.map((it) => ({ name: it.name, flavor: it.flavor, qty: it.qty, price: it.price })),
+      };
+      ctx.clearCart();
+      setOrder(orderData);
+      ctx.toast("¡Pedido recibido! ✦");
+
+      // ── 3) Efectos secundarios: ninguno bloquea ni propaga su error ──────────
+      sendClientConfirmation(orderData).catch(() => {});   // correo al cliente
+      notifyNewOrder(orderData, detalle).catch(() => {});  // aviso a la tienda
+      // Guardar la dirección para la próxima compra. Antes vivía dentro del bloque
+      // crítico, donde un corte de red justo después del RPC duplicaba el pedido.
       if (user && !savedAddr) {
-        await sb.from("addresses").insert({
+        sb.from("addresses").insert({
           user_id: user.id,
           direccion: g("direccion"), municipio: g("municipio"),
           departamento: g("departamento"), referencia: g("referencia"),
-        });
+        }).then(() => {}, () => {});
       }
 
-      // También en localStorage para el panel admin local
+      // Copia local del pedido (respaldo visible en el panel sin conexión)
       try {
         const orders = JSON.parse(localStorage.getItem("ff_orders") || "[]");
         orders.unshift({ ...orderPayload, date: new Date().toISOString() });
         localStorage.setItem("ff_orders", JSON.stringify(orders));
       } catch (_) {}
 
-      // Decrementar stock: por presentación (vf) si existe; recomputar el total del producto.
+      // Decrementar stock en la caché local: por presentación (vf) si existe.
       try {
         const ffData = JSON.parse(localStorage.getItem("ff_data") || "{}");
         const products = ffData.products;
@@ -1204,18 +1245,6 @@ function CheckoutPage({ ctx }) {
           if (changed) { ffData.products = products; localStorage.setItem("ff_data", JSON.stringify(ffData)); }
         }
       } catch (_) {}
-
-      ctx.clearCart();
-      const orderData = {
-        id, total, count, subtotal, shipping, date: new Date().toLocaleString("es-GT"),
-        nombre: g("nombre"), telefono: g("telefono"), correo: g("correo"),
-        direccion: g("direccion"), municipio: g("municipio"), departamento: g("departamento"),
-        referencia: g("referencia"), pago: g("pago"),
-        items: items.map((it) => ({ name: it.name, flavor: it.flavor, qty: it.qty, price: it.price })),
-      };
-      sendClientConfirmation(orderData).catch(() => {}); // no bloquea si falla
-      setOrder(orderData);
-      ctx.toast("¡Pedido recibido! ✦");
     } catch {
       ctx.toast("Error al enviar el pedido. Intenta de nuevo.");
     } finally {
@@ -1306,7 +1335,7 @@ function CheckoutPage({ ctx }) {
               </a>
             </div>
             <div style={{ textAlign: "center", marginTop: 16 }}>
-              <a className="btn btn-primary btn-lg" href="#/catalogo">Seguir comprando <Icon name="arrow" size={18} /></a>
+              <a className="btn btn-primary btn-lg" href="/catalogo">Seguir comprando <Icon name="arrow" size={18} /></a>
             </div>
           </div>
         </div>
@@ -1322,7 +1351,7 @@ function CheckoutPage({ ctx }) {
           <div className="cart-empty" style={{ padding: "70px 20px" }}>
             <Icon name="cart" size={40} />
             <div>Tu carrito está vacío.<br />Agrega productos antes de finalizar la compra.</div>
-            <a className="btn btn-primary" href="#/catalogo">Ver productos <Icon name="arrow" size={18} /></a>
+            <a className="btn btn-primary" href="/catalogo">Ver productos <Icon name="arrow" size={18} /></a>
           </div>
         </div>
       </section>
@@ -1478,9 +1507,9 @@ function AccountPage({ ctx, route }) {
               <span style={{ color: "var(--text-dim)", fontSize: 14 }}>{user.email}</span>
             </div>
             <nav className="account-nav">
-              <a href="#/cuenta" className={!sub ? "on" : ""}><Icon name="user" size={15} /> Perfil</a>
-              <a href="#/cuenta/pedidos" className={sub === "pedidos" ? "on" : ""}><Icon name="package" size={15} /> Mis pedidos <span className="acnt-badge">{orders.length}</span></a>
-              <a href="#/cuenta/favoritos" className={sub === "favoritos" ? "on" : ""}><Icon name="heart" size={15} /> Favoritos <span className="acnt-badge">{ctx.favs.size}</span></a>
+              <a href="/cuenta" className={!sub ? "on" : ""}><Icon name="user" size={15} /> Perfil</a>
+              <a href="/cuenta/pedidos" className={sub === "pedidos" ? "on" : ""}><Icon name="package" size={15} /> Mis pedidos <span className="acnt-badge">{orders.length}</span></a>
+              <a href="/cuenta/favoritos" className={sub === "favoritos" ? "on" : ""}><Icon name="heart" size={15} /> Favoritos <span className="acnt-badge">{ctx.favs.size}</span></a>
             </nav>
           </aside>
 
@@ -1513,7 +1542,7 @@ function AccountPage({ ctx, route }) {
                     <div className="cart-empty" style={{ padding: "50px 20px" }}>
                       <Icon name="package" size={36} />
                       <div>Aún no tienes pedidos.<br />¡Empieza a comprar!</div>
-                      <a className="btn btn-primary" href="#/catalogo">Ver productos <Icon name="arrow" size={18} /></a>
+                      <a className="btn btn-primary" href="/catalogo">Ver productos <Icon name="arrow" size={18} /></a>
                     </div>
                   ) : orders.map((o) => (
                     <div className="acnt-order" key={o.id}>
@@ -1558,7 +1587,7 @@ function AccountPage({ ctx, route }) {
                   <div className="cart-empty" style={{ padding: "50px 20px" }}>
                     <Icon name="heart" size={36} />
                     <div>Aún no tienes favoritos.<br />Toca el ♥ en cualquier producto para guardarlo aquí.</div>
-                    <a className="btn btn-primary" href="#/catalogo">Explorar productos <Icon name="arrow" size={18} /></a>
+                    <a className="btn btn-primary" href="/catalogo">Explorar productos <Icon name="arrow" size={18} /></a>
                   </div>
                 ) : (
                   <div className="pgrid">
@@ -1583,7 +1612,7 @@ function NotFoundPage({ msg }) {
       <div className="ff-wrap ff-narrow" style={{ textAlign: "center", padding: "80px 0" }}>
         <h1 className="display" style={{ fontSize: "clamp(60px,16vw,140px)", color: "var(--accent)" }}>404</h1>
         <p style={{ color: "var(--text-dim)", fontSize: 18, margin: "0 0 26px" }}>{msg || "Esta página no existe o fue movida."}</p>
-        <a className="btn btn-primary btn-lg" href="#/">Volver al inicio <Icon name="arrow" size={18} /></a>
+        <a className="btn btn-primary btn-lg" href="/">Volver al inicio <Icon name="arrow" size={18} /></a>
       </div>
     </section>
   );
