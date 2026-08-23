@@ -90,10 +90,12 @@ function Marquee() {
 }
 
 function Hero() {
-  // Carrusel de productos destacados: primero los marcados en el admin ("carousel"),
-  // en el orden del catálogo. Si no hay ninguno marcado, cae al automático (más reseñas).
+  // Carrusel de productos destacados: los marcados en el admin ("carousel"), ordenados por
+  // `carouselOrder` (el orden que se define arrastrando en el panel). Los que no lo tengan
+  // van al final, conservando el orden del catálogo. Sin ninguno marcado, cae al automático.
   const slides = React.useMemo(() => {
-    const picked = FF.PRODUCTS.filter((p) => p.carousel);
+    const picked = FF.PRODUCTS.filter((p) => p.carousel)
+      .sort((a, b) => (a.carouselOrder ?? Infinity) - (b.carouselOrder ?? Infinity));
     return picked.length
       ? picked
       : FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 5);

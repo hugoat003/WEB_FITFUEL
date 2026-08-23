@@ -204,6 +204,20 @@ input[type=range]{width:100%;accent-color:#a3e635;margin:4px 0}
 
 /* ── Settings section ── */
 .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:20px}
+/* ── Carrusel del inicio: lista reordenable ── */
+.car-list{display:flex;flex-direction:column;gap:8px}
+.car-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px}
+.car-pos{width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:6px;background:var(--sidebar);color:#a3e635;font-family:var(--font-mono);font-size:12px;font-weight:700}
+.car-thumb{width:38px;height:38px;flex:none;border-radius:6px;object-fit:cover;background:var(--bg);border:1px solid var(--border)}
+.car-name{flex:1;min-width:0}
+.car-name b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.car-name span{font-size:12px;color:var(--dim)}
+.car-acts{display:flex;gap:4px;flex:none}
+.car-btn{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--border);background:var(--surface);border-radius:6px;font-size:14px;line-height:1;color:var(--text)}
+.car-btn:hover:not(:disabled){background:var(--bg);border-color:var(--dim)}
+.car-btn:disabled{opacity:.3;cursor:not-allowed}
+.car-btn.car-del:hover{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger)}
+@media(max-width:700px){.car-thumb{display:none}}
 .settings-card h3{font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
 
 /* ── Tab content ── */
@@ -548,6 +562,11 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
 
       <!-- PRODUCTOS -->
       <div id="tab-productos" class="tab-content">
+        <div class="settings-card">
+          <h3>⭐ Carrusel del inicio</h3>
+          <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Estos son los productos que giran en la portada, en el orden en que se mostrarán. Usa las flechas para reordenarlos. Para añadir o quitar uno, edita el producto y marca la casilla del carrusel. Recuerda <b>Publicar</b> al terminar.</p>
+          <div id="carousel-list" class="car-list"></div>
+        </div>
         <div class="table-wrap">
           <table>
             <thead><tr>
@@ -1501,7 +1520,63 @@ async function deleteOrder(idx) {
 }
 
 // ── PRODUCTOS ──────────────────────────────────────────────────────────────────
+// ── Carrusel del inicio: selección ordenada ───────────────────────────────────
+// El orden vive en `carouselOrder` dentro de cada producto, así viaja con el catálogo
+// al publicar sin necesitar una clave nueva en data.json. La tienda ordena por ese campo.
+function carouselItems() {
+  return D.products
+    .filter(p => p.carousel)
+    .sort((a, b) => (a.carouselOrder ?? Infinity) - (b.carouselOrder ?? Infinity));
+}
+// Reasigna 0..n-1 para que no queden huecos ni empates tras mover o quitar.
+function renumberCarousel() {
+  carouselItems().forEach((p, i) => { p.carouselOrder = i; });
+  D.products.forEach(p => { if (!p.carousel) delete p.carouselOrder; });
+}
+function renderCarousel() {
+  const el = document.getElementById('carousel-list');
+  if (!el) return;
+  renumberCarousel();
+  const items = carouselItems();
+  if (!items.length) {
+    el.innerHTML = `<div class="empty" style="padding:18px"><div class="empty-icon">⭐</div>
+      Ningún producto marcado. La portada mostrará automáticamente los 5 con más reseñas.</div>`;
+    return;
+  }
+  el.innerHTML = items.map((p, i) => {
+    const img = p.image || (p.variants && p.variants[0] && p.variants[0].images && p.variants[0].images[0]) || '';
+    return `<div class="car-row">
+      <div class="car-pos">${i + 1}</div>
+      ${img ? `<img class="car-thumb" src="${esc(img)}" alt="" />` : '<div class="car-thumb"></div>'}
+      <div class="car-name"><b>${esc(p.name)}</b><span>${esc(p.flavor || '')}</span></div>
+      <div class="car-acts">
+        <button class="car-btn" onclick="moveCarousel('${esc(p.id)}',-1)" ${i === 0 ? 'disabled' : ''} title="Subir">↑</button>
+        <button class="car-btn" onclick="moveCarousel('${esc(p.id)}',1)" ${i === items.length - 1 ? 'disabled' : ''} title="Bajar">↓</button>
+        <button class="car-btn car-del" onclick="removeFromCarousel('${esc(p.id)}')" title="Quitar del carrusel">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function moveCarousel(id, dir) {
+  const items = carouselItems();
+  const i = items.findIndex(p => p.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= items.length) return;
+  // Intercambia posiciones con su vecino.
+  const a = items[i].carouselOrder, b = items[j].carouselOrder;
+  items[i].carouselOrder = b; items[j].carouselOrder = a;
+  save(); renderCarousel();
+}
+function removeFromCarousel(id) {
+  const p = D.products.find(x => x.id === id);
+  if (!p) return;
+  p.carousel = false; delete p.carouselOrder;
+  save(); renderCarousel(); renderProducts();
+  toast('Quitado del carrusel');
+}
+
 function renderProducts() {
+  renderCarousel();
   const tb = document.getElementById('products-tbody');
   if (!D.products.length) {
     tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📦</div>No hay productos.</div></td></tr>`;
@@ -1706,6 +1781,10 @@ function saveProduct() {
     hue: parseInt(document.getElementById('f-hue').value),
     blurb: document.getElementById('f-blurb').value.trim(),
     carousel: document.getElementById('f-carousel').checked,
+    // Si acaba de entrar al carrusel, se coloca al final; si ya estaba, conserva su sitio.
+    carouselOrder: document.getElementById('f-carousel').checked
+      ? (previo.carouselOrder ?? D.products.filter(p => p.carousel).length)
+      : undefined,
     goals: [...document.querySelectorAll('input[name="goal"]:checked')].map(x => x.value),
   };
   if (editId) D.products = D.products.map(p => p.id === editId ? product : p);
