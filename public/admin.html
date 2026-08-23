@@ -851,6 +851,18 @@ let expandedOrder = null;
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 function loadData() {
   D.products     = clone(FF.PRODUCTS);
+  // Reposición: si un producto perdió su descripción o su advertencia (los borraba la
+  // versión anterior de saveProduct), se recuperan del catálogo de fábrica. No pisa nada
+  // que ya tenga valor, así que es inofensivo una vez reparado.
+  if (FF.DEFAULTS && FF.DEFAULTS.products) {
+    D.products.forEach(p => {
+      const def = FF.DEFAULTS.products.find(d => d.id === p.id);
+      if (!def) return;
+      if (!p.description && def.description) p.description = def.description;
+      if (!p.warning && def.warning) p.warning = def.warning;
+      if (!p.brand && def.brand) p.brand = def.brand;
+    });
+  }
   D.bundles      = clone(FF.BUNDLES);
   D.blog         = clone(FF.BLOG);
   D.testimonials = clone(FF.TESTIMONIALS);
@@ -1670,7 +1682,12 @@ function saveProduct() {
   const anyUnlimited = variants.some(v => v.stock == null);
   const derivedStock = anyUnlimited ? null : variants.reduce((s, v) => s + (v.stock || 0), 0);
   const first = variants[0];
+  // Se parte del producto existente para NO perder los campos que este formulario no edita
+  // (description, warning, brand, group, sizeLabel...). Antes se construía un objeto nuevo
+  // desde cero, así que editar un producto para cambiarle la foto borraba su descripción.
+  const previo = editId ? (D.products.find(p => p.id === editId) || {}) : {};
   const product = {
+    ...previo,
     id: editId || (name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,20) + '-' + Date.now()),
     code: document.getElementById('f-code').value.trim() || null,
     name,

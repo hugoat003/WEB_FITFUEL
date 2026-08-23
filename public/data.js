@@ -757,5 +757,10 @@ FF.loadRemote = async function () {
   } catch (e) {}
 };
 
+// Copia intacta del catálogo de fábrica, ANTES de aplicar lo que haya en este navegador.
+// El panel la usa para recuperar campos que su formulario no edita (descripción larga,
+// advertencias) y que antes se perdían al guardar un producto.
+FF.DEFAULTS = { products: JSON.parse(JSON.stringify(FF.PRODUCTS)), bundles: JSON.parse(JSON.stringify(FF.BUNDLES)) };
+
 // Datos locales (preview del panel admin en este navegador).
 try { FF.applyData(JSON.parse(localStorage.getItem('ff_data'))); } catch (e) {}

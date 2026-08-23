@@ -43,20 +43,23 @@ transaccional. Precios en Quetzales (GTQ). La mayoría del tráfico es móvil.
 
 ## Base de datos (Supabase)
 
+> 📁 Toda la documentación vive en **[`docs/`](docs/README.md)** — brand book, fichas de
+> producto y los bloques SQL de Supabase, con un índice de qué está vigente.
+
 Tablas con RLS: `profiles` (`is_admin`), `orders`, `stock`, `costs` (privada), `addresses`,
 `promo_codes`, `favorites`, `reviews`. La configuración vive en los `SUPABASE-*.md` y
-`SECURITY-HEADERS-SETUP.md` — **corre esos bloques SQL en Supabase → SQL Editor**:
+[`SECURITY-HEADERS-SETUP.md`](docs/SECURITY-HEADERS-SETUP.md) — **corre esos bloques SQL en Supabase → SQL Editor**:
 
-- `SUPABASE-ADMIN-SETUP.md` — RLS de `profiles`/`orders`, helper `is_admin()`, storage `catalog`.
-- `SUPABASE-INVENTORY-SETUP.md` — tabla `stock` + `place_order` (atómico, anti-sobreventa).
-- `SUPABASE-COSTS-SETUP.md` — tabla privada `costs` (margen del dashboard).
-- `SUPABASE-ADMIN-FIXES.md` — borrar/cancelar pedidos + `restock_order`.
-- `SUPABASE-SECURITY-SETUP.md` — RLS de `addresses`/`promo_codes`, cierre de inserción a `orders`.
-- **`SUPABASE-FASE3-CORRECCIONES.md` — versión vigente de `place_order`. ⚠️ Córrela.**
-- `SUPABASE-FASE1-PLACE-ORDER.md` — versión anterior (superada por la Fase 3).
-- `SUPABASE-FASE1-RPCS.md` — `top_products`, `last_order_for_email`.
-- `SUPABASE-FASE2-FAVORITES.md` — tabla `favorites`.
-- `SUPABASE-FASE2-REVIEWS.md` — tabla `reviews` (moderadas).
+- [`SUPABASE-ADMIN-SETUP.md`](docs/SUPABASE-ADMIN-SETUP.md) — RLS de `profiles`/`orders`, helper `is_admin()`, storage `catalog`.
+- [`SUPABASE-INVENTORY-SETUP.md`](docs/SUPABASE-INVENTORY-SETUP.md) — tabla `stock` + `place_order` (atómico, anti-sobreventa).
+- [`SUPABASE-COSTS-SETUP.md`](docs/SUPABASE-COSTS-SETUP.md) — tabla privada `costs` (margen del dashboard).
+- [`SUPABASE-ADMIN-FIXES.md`](docs/SUPABASE-ADMIN-FIXES.md) — borrar/cancelar pedidos + `restock_order`.
+- [`SUPABASE-SECURITY-SETUP.md`](docs/SUPABASE-SECURITY-SETUP.md) — RLS de `addresses`/`promo_codes`, cierre de inserción a `orders`.
+- **[`SUPABASE-FASE3-CORRECCIONES.md`](docs/SUPABASE-FASE3-CORRECCIONES.md) — versión vigente de `place_order`. ⚠️ Córrela.**
+- [`SUPABASE-FASE1-PLACE-ORDER.md`](docs/SUPABASE-FASE1-PLACE-ORDER.md) — versión anterior (superada por la Fase 3).
+- [`SUPABASE-FASE1-RPCS.md`](docs/SUPABASE-FASE1-RPCS.md) — `top_products`, `last_order_for_email`.
+- [`SUPABASE-FASE2-FAVORITES.md`](docs/SUPABASE-FASE2-FAVORITES.md) — tabla `favorites`.
+- [`SUPABASE-FASE2-REVIEWS.md`](docs/SUPABASE-FASE2-REVIEWS.md) — tabla `reviews` (moderadas).
 
 ## Panel de administración (`admin.html`)
 
