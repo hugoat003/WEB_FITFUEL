@@ -177,6 +177,26 @@ function Avatar({ name, hue, image }) {
   );
 }
 
+// Marca de versión del catálogo. La app monta con el catálogo local y el publicado llega
+// después (evento `ff:catalog`), así que cualquier cálculo memoizado sobre FF.PRODUCTS se
+// quedaría congelado con los datos de arranque. Este contador sirve de dependencia para
+// que se rehagan cuando llega el bueno. El listener de módulo se registra antes que los de
+// los componentes, así que cuando estos leen FF_TICK ya está actualizado.
+let FF_TICK = 0;
+if (typeof window !== "undefined") {
+  window.addEventListener("ff:catalog", () => { FF_TICK++; });
+}
+function useCatalogTick() {
+  const [t, setT] = React.useState(FF_TICK);
+  React.useEffect(() => {
+    const on = () => setT(FF_TICK);
+    window.addEventListener("ff:catalog", on);
+    on();   // por si el catálogo llegó antes de que montara este componente
+    return () => window.removeEventListener("ff:catalog", on);
+  }, []);
+  return t;
+}
+
 // Rate limiter cliente (ventana deslizante en localStorage). Mitiga spam de
 // pedidos, fuerza bruta de códigos e intentos de login desde el mismo navegador.
 function rateLimit(key, max, windowMs) {
@@ -218,4 +238,4 @@ function useFocusTrap(active, onClose) {
   return ref;
 }
 
-Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap });
+Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useCatalogTick });

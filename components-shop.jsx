@@ -93,13 +93,14 @@ function Hero() {
   // Carrusel de productos destacados: los marcados en el admin ("carousel"), ordenados por
   // `carouselOrder` (el orden que se define arrastrando en el panel). Los que no lo tengan
   // van al final, conservando el orden del catálogo. Sin ninguno marcado, cae al automático.
+  const tick = useCatalogTick();   // rehacer cuando llegue el catálogo publicado
   const slides = React.useMemo(() => {
     const picked = FF.PRODUCTS.filter((p) => p.carousel)
       .sort((a, b) => (a.carouselOrder ?? Infinity) - (b.carouselOrder ?? Infinity));
     return picked.length
       ? picked
       : FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 5);
-  }, []);
+  }, [tick]);
   const [idx, setIdx] = React.useState(0);
   const total = slides.length;
   const go = (i) => setIdx(((i % total) + total) % total);
@@ -269,6 +270,7 @@ function Catalog({ query, activeGoals, onAdd, onQuick, favs, toggleFav, initialC
     if (clearGoals) clearGoals();
   };
 
+  const tickCat = useCatalogTick();
   const list = useMemo(() => {
     let r = FF.PRODUCTS.slice();
     if (offersOnly) r = r.filter((p) => p.oldPrice);
@@ -281,7 +283,7 @@ function Catalog({ query, activeGoals, onAdd, onQuick, favs, toggleFav, initialC
     else if (sort === "rating") r.sort((a, b) => b.rating - a.rating);
     else r.sort((a, b) => b.reviews - a.reviews);
     return r;
-  }, [cat, sort, query, activeGoals, offersOnly]);
+  }, [cat, sort, query, activeGoals, offersOnly, tickCat]);
 
   const goalLabels = [...activeGoals].map((g) => FF.GOALS.find((x) => x.id === g)?.label).filter(Boolean);
 

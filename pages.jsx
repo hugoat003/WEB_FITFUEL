@@ -64,10 +64,13 @@ function PageHead({ eyebrow, title, sub }) {
 function HomePage({ ctx }) {
   // "Más vendidos" desde ventas reales y COMPARTIDAS (RPC público top_products, agregado y sin
   // datos personales). Fallback a reseñas si el RPC aún no existe o no hay ventas. Nunca localStorage.
+  const tick = useCatalogTick();
   const [featured, setFeatured] = React.useState(
     () => FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 4)
   );
+  // Se rehace también al llegar el catálogo publicado (`tick`), no solo al montar.
   React.useEffect(() => {
+    setFeatured(FF.PRODUCTS.slice().sort((a, b) => b.reviews - a.reviews).slice(0, 4));
     let alive = true;
     sb.rpc("top_products", { p_limit: 12 }).then(({ data }) => {
       if (!alive || !Array.isArray(data) || !data.length) return;
@@ -76,7 +79,7 @@ function HomePage({ ctx }) {
       setFeatured(FF.PRODUCTS.slice().sort((a, b) => (units[b.id] || 0) - (units[a.id] || 0)).slice(0, 4));
     }).catch(() => {});
     return () => { alive = false; };
-  }, []);
+  }, [tick]);
   const cats = FF.CATEGORIES.filter((c) => c.id !== "all");
   const catHues = [92, 200, 350, 150, 30, 270];
   return (
@@ -161,11 +164,12 @@ function CatalogPage({ ctx, route }) {
 
 /* ---------------- OBJETIVOS ---------------- */
 function GoalsPage({ ctx }) {
+  const tickGoals = useCatalogTick();
   const recs = React.useMemo(() => {
     if (ctx.activeGoals.size === 0) return [];
     return FF.PRODUCTS.filter((p) => p.goals.some((g) => ctx.activeGoals.has(g)))
       .sort((a, b) => b.reviews - a.reviews).slice(0, 4);
-  }, [ctx.activeGoals]);
+  }, [ctx.activeGoals, tickGoals]);
   return (
     <section className="page">
       <div className="ff-wrap">
