@@ -97,6 +97,28 @@ function renderPage(route, ctx) {
   }
 }
 
+// Barra de vista previa. Solo aparece con ?preview=1, y deja claro que lo que se ve son
+// cambios sin publicar. Sin ella, el dueño de la tienda no tenía forma de distinguir su
+// copia de trabajo de lo que ven los clientes.
+function PreviewBar() {
+  if (!(window.FF && FF.PREVIEW)) return null;
+  return (
+    <div role="status" style={{
+      position: "sticky", top: 0, zIndex: 9999,
+      background: "#C6F24E", color: "#16130F",
+      font: "600 13px/1.35 var(--font-body, system-ui), sans-serif",
+      padding: "9px 16px", display: "flex", flexWrap: "wrap",
+      alignItems: "center", justifyContent: "center", gap: "6px 14px",
+      textAlign: "center", boxShadow: "0 1px 0 rgba(0,0,0,.12)",
+    }}>
+      <span><b>Vista previa</b> — estás viendo cambios sin publicar. Tus clientes ven otra cosa.</span>
+      <a href="/?preview=0" style={{ color: "#16130F", fontWeight: 700, textDecoration: "underline" }}>
+        Ver la tienda real
+      </a>
+    </div>
+  );
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const route = useRoute();
@@ -364,6 +386,7 @@ function App() {
 
   return (
     <>
+      <PreviewBar />
       {bareRoute ? pageHost : (
         <div className="app-frame">
           <Header cartCount={cartCount} bump={bump} onCart={() => setCartOpen(true)}

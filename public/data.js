@@ -748,6 +748,8 @@ FF.applyData = function (saved) {
 // Carga remota (catálogo publicado). La llama main.jsx ANTES de montar la app,
 // así los visitantes ven el catálogo/ imágenes publicados. Falla en silencio.
 FF.loadRemote = async function () {
+  // En vista previa se respeta la copia de trabajo: descargar el publicado la borraría.
+  if (FF.PREVIEW) return;
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 3500); // no bloquear el arranque más de 3.5s
@@ -762,5 +764,20 @@ FF.loadRemote = async function () {
 // advertencias) y que antes se perdían al guardar un producto.
 FF.DEFAULTS = { products: JSON.parse(JSON.stringify(FF.PRODUCTS)), bundles: JSON.parse(JSON.stringify(FF.BUNDLES)) };
 
-// Datos locales (preview del panel admin en este navegador).
-try { FF.applyData(JSON.parse(localStorage.getItem('ff_data'))); } catch (e) {}
+// ── Vista previa ───────────────────────────────────────────────────────────────
+// El panel guarda su copia de trabajo en `ff_data`. Durante mucho tiempo la tienda la
+// aplicaba SIEMPRE, así que quien administraba veía sus cambios sin publicar mientras los
+// clientes veían otra cosa, sin ninguna señal de que estaba pasando. Ahora es explícito:
+// solo con ?preview=1, y mientras dure esa pestaña. Se sale con ?preview=0.
+FF.PREVIEW = false;
+try {
+  const qs = new URLSearchParams(window.location.search);
+  const q = qs.get('preview');
+  if (q === '1') sessionStorage.setItem('ff_preview', '1');
+  else if (q === '0') sessionStorage.removeItem('ff_preview');
+  FF.PREVIEW = sessionStorage.getItem('ff_preview') === '1';
+} catch (e) {}
+
+if (FF.PREVIEW) {
+  try { FF.applyData(JSON.parse(localStorage.getItem('ff_data'))); } catch (e) {}
+}
