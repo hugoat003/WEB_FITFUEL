@@ -110,6 +110,16 @@
 .dp-card { position:relative; overflow:hidden; border:1px solid rgba(234,231,223,.14); border-radius:16px; padding:clamp(26px,3vw,38px); min-height:210px; display:flex; flex-direction:column; }
 .dp-card h3 { font-weight:700; text-transform:uppercase; font-size:20px; letter-spacing:.02em; margin:0; }
 .dp-card p { font-size:14px; line-height:1.6; color:#8C877C; margin:14px 0 0; max-width:320px; }
+
+/* ===== DESCRIPCIÓN LARGA ===== */
+.dp-longdesc { padding: 0 clamp(18px,3vw,40px) clamp(30px,4vw,44px); }
+.dp-longdesc-wrap { max-width: 720px; margin: 0 auto; }
+.dp-longdesc h3 { font-weight:700; text-transform:uppercase; font-size:20px; letter-spacing:.02em; color: var(--text); margin: 0 0 18px; }
+.dp-longdesc p { font-size:15px; line-height:1.7; color: var(--text-dim); margin: 0 0 16px; }
+.dp-longdesc p:last-child { margin-bottom: 0; }
+.dp-warning { margin-top: 28px; padding: 20px clamp(20px,3vw,28px); border: 1px solid var(--border-2); border-radius: var(--r-md); background: var(--bg-2); }
+.dp-warning h4 { font-weight:700; text-transform:uppercase; font-size:14px; letter-spacing:.04em; color: var(--accent); margin:0 0 8px; }
+.dp-warning p { font-size:14px; line-height:1.6; color: var(--text-dim); margin:0; }
 .dp-card-link { margin-top:auto; padding-top:24px; font-size:11px; font-weight:700; border-bottom:1px solid #EAE7DF; align-self:flex-start; }
 .dp-card-faq-body { position:relative; z-index:2; max-width:56%; }
 .dp-card-img { position:absolute; top:0; right:0; bottom:0; width:42%; height:100%; }

@@ -74,8 +74,22 @@ npm run build    # build de producción -> dist/
 npm run preview  # sirve el build de dist/
 ```
 
-Deploy: **Cloudflare Pages** (build `npm run build`, output `dist/`). Configura los secretos de la
-Function (`RESEND_API_KEY`) en el panel de Pages.
+### Deploy
+
+El proyecto de Cloudflare Pages se llama `fitfuel` y es de tipo **Direct Upload**: **no está
+conectado a GitHub**, así que hacer `git push` **no despliega nada**. Hay que subirlo a mano desde
+la raíz del repo (desde ahí wrangler recoge `functions/`, si no el endpoint de correo no se sube):
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name=fitfuel --branch=main
+```
+
+El secreto `RESEND_API_KEY` se configura en el panel de Pages.
+
+> Los metadatos de buscador se generan en el build a partir del **catálogo publicado** en Supabase
+> Storage. Si publicas un catálogo nuevo desde el panel, **vuelve a desplegar** para que las páginas
+> y el `sitemap.xml` lo reflejen.
 
 ## Notas de producción
 

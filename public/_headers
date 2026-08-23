@@ -12,6 +12,11 @@
 #   static.cloudflareinsights.com             → Cloudflare Web Analytics (lo inyecta Cloudflare
 #                                               solo en cada página; sin esto no cuenta visitas)
 #
+# connect-src incluye `data:` y `blob:` porque el panel, al publicar, convierte cada imagen
+# haciendo fetch() sobre su propia data: URL antes de subirla a Supabase. Sin ellos, publicar
+# con imágenes falla con "Failed to fetch". No debilita la política: son datos que la propia
+# página ya tiene en memoria, no un destino externo al que se puedan enviar.
+#
 # LÍMITE CONOCIDO: script-src conserva 'unsafe-inline' porque admin.html usa manejadores
 # en línea (onclick="…") en decenas de sitios. Quitarlo exige convertirlos a addEventListener.
 # Aun con 'unsafe-inline', esta política ya bloquea scripts de dominios desconocidos, el
@@ -27,7 +32,7 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.web3forms.com https://cloudflareinsights.com https://static.cloudflareinsights.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://api.web3forms.com https://cdn.jsdelivr.net https://cloudflareinsights.com https://static.cloudflareinsights.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
 
 # Los assets del build llevan un hash en el nombre: cuando cambia el contenido cambia la
 # URL, así que se pueden cachear para siempre. Ahorra la descarga en cada visita repetida.

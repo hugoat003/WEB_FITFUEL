@@ -436,6 +436,26 @@ function ProductPage({ ctx, route }) {
           <div className="dp-stmt-ar"><Icon name="arrow" size={18} stroke={1.5} style={{ transform: "rotate(90deg)" }} /></div>
         </section>
 
+        {/* ===== DESCRIPCIÓN LARGA ===== */}
+        {((p.description && p.description.length) || p.warning) && (
+          <section className="dp-longdesc">
+            <div className="dp-longdesc-wrap">
+              {p.description && p.description.length > 0 && (
+                <>
+                  <h3 className="dp-arch">Descripción</h3>
+                  {p.description.map((para, i) => <p key={i}>{para}</p>)}
+                </>
+              )}
+              {p.warning && (
+                <div className="dp-warning">
+                  <h4 className="dp-arch">Advertencia</h4>
+                  <p>{p.warning}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* ===== CARDS ===== */}
         <section className="dp-cards">
           <div className="dp-card">
