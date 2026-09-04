@@ -91,7 +91,7 @@ function HomePage({ ctx }) {
         <div className="ff-wrap ebens-grid">
           <div className="eben"><div><div className="eben-h">Envío gratis</div><div className="eben-p">En pedidos desde {money(FF.FREE_SHIP)}</div></div></div>
           <div className="eben"><div><div className="eben-h">Entrega 2-3 días hábiles</div><div className="eben-p">En toda Guatemala</div></div></div>
-          <div className="eben"><div><div className="eben-h">Calidad certificada</div><div className="eben-p">Testeado en laboratorio</div></div></div>
+          <div className="eben"><div><div className="eben-h">Producto original</div><div className="eben-p">Sellado, con lote y vencimiento</div></div></div>
         </div>
       </section>
 
@@ -866,8 +866,8 @@ const CONTENT_PAGES = {
     blocks: [
       { h: "Cobertura", p: "Enviamos a toda la República de Guatemala a través de mensajería nacional, a cualquiera de los 22 departamentos." },
       { h: "Tiempos de entrega", p: "El tiempo estimado de entrega es de 2 a 3 días hábiles a cualquier punto del país, contados a partir de la confirmación de tu pedido." },
-      { h: "Costo de envío", p: "Tarifa plana de Q35 a todo el país. En pedidos mayores a Q400 el envío es totalmente gratis." },
-      { h: "Seguimiento", p: "Al despachar tu pedido te enviamos por WhatsApp el número de guía para que sigas tu paquete en tiempo real." },
+      { h: "Costo de envío", p: "Tarifa plana de {costoEnvio} a todo el país. En pedidos desde {envioGratis} el envío es gratis." },
+      { h: "Seguimiento", p: "Te avisamos por correo cada vez que tu pedido cambia de estado, y al despacharlo te enviamos el número de guía para que sigas tu paquete." },
     ],
   },
   devoluciones: {
@@ -875,8 +875,8 @@ const CONTENT_PAGES = {
     sub: "Compra informada: no aceptamos devoluciones.",
     blocks: [
       { h: "No se aceptan devoluciones ni cambios", p: "Por tratarse de productos de consumo, y por higiene y seguridad, no aceptamos devoluciones, cambios ni reembolsos una vez realizada la compra. Te pedimos revisar bien tu pedido antes de confirmarlo." },
-      { h: "Asesoría antes de comprar", p: "¿No sabes qué suplemento elegir? Escríbenos por WhatsApp antes de tu compra y te asesoramos sin compromiso para que elijas con seguridad." },
-      { h: "Producto dañado en el envío", p: "Si tu pedido llega físicamente dañado por el transporte, contáctanos por WhatsApp dentro de las 24 horas siguientes a la entrega, con fotos del empaque y el producto, y lo revisamos caso por caso." },
+      { h: "Asesoría antes de comprar", p: "¿No sabes qué suplemento elegir? Escríbenos desde la página de contacto antes de tu compra y te asesoramos sin compromiso para que elijas con seguridad." },
+      { h: "Producto dañado en el envío", p: "Si tu pedido llega físicamente dañado por el transporte, escríbenos dentro de las 24 horas siguientes a la entrega, con fotos del empaque y el producto, y lo revisamos caso por caso." },
     ],
   },
   faq: {
@@ -893,16 +893,17 @@ const INFO_PAGES = {
     blocks: [
       { h: "Nuestra historia", p: "FITFUEL nació con el propósito de acercar suplementos de calidad, originales y sin marketing engañoso a quienes entrenan en serio, ofreciendo precios justos y accesibles en quetzales." },
       { h: "Qué nos mueve", p: "Creemos en la transparencia total. Etiquetas claras, dosis efectivas y cero azúcares ocultos. Si un ingrediente no tiene respaldo científico, no lo vendemos." },
-      { h: "Hecho para Guatemala", p: "Entendemos al atleta local: desde quien entrena en casa hasta el competidor. Por eso enviamos a todo el país y damos asesoría real por WhatsApp." },
+      { h: "Hecho para Guatemala", p: "Entendemos al atleta local: desde quien entrena en casa hasta el competidor. Por eso enviamos a todo el país y respondemos las dudas una por una, sin bots." },
     ],
   },
   calidad: {
-    eyebrow: "FITFUEL", title: "Calidad y laboratorio",
-    sub: "Cada lote, verificado. Sin atajos.",
+    eyebrow: "FITFUEL", title: "Calidad y origen",
+    sub: "Lo que sí respondemos nosotros, y lo que certifica cada fabricante.",
     blocks: [
-      { h: "Testeado en laboratorio", p: "Todos nuestros productos pasan por análisis de laboratorio de terceros que verifican pureza, contenido proteico y ausencia de metales pesados y sustancias prohibidas." },
-      { h: "Productos originales", p: "Trabajamos únicamente con marcas y distribuidores autorizados. Cada producto llega sellado, con su lote y fecha de vencimiento visibles." },
-      { h: "Sin azúcares ocultos", p: "Publicamos la información nutricional completa. Lo que ves en la etiqueta es exactamente lo que recibes." },
+      { h: "Producto original", p: "Trabajamos únicamente con marcas y distribuidores autorizados. Cada producto llega sellado de fábrica, con su número de lote y su fecha de vencimiento visibles. Eso es lo que respondemos nosotros." },
+      { h: "Las certificaciones son del fabricante", p: "Los análisis de laboratorio los realiza y certifica cada marca, no FITFUEL. Cuando un producto tiene un sello verificable —Creapure®, Banned Substance Tested, CreaClean— lo indicamos en su ficha, con nombre y todo, para que puedas comprobarlo por tu cuenta." },
+      { h: "Etiqueta completa, sin recortes", p: "Publicamos la información nutricional tal como viene: ingredientes, dosis por servicio y advertencias. Si un producto lleva estimulantes o alérgenos, lo ves antes de comprarlo, no después." },
+      { h: "Son suplementos, no medicamentos", p: "Nuestros productos son suplementos alimenticios. No sustituyen una dieta equilibrada ni el consejo de un profesional de la salud, y no tratan ni curan ninguna enfermedad." },
     ],
   },
   afiliados: {
@@ -959,7 +960,7 @@ function ContentPage({ data, ctx }) {
         <PageHead eyebrow={data.eyebrow} title={data.title} sub={data.sub} />
         {data.faq ? (
           <div className="faq">
-            {FF.FAQ.map((f, i) => <FaqItem key={i} q={f.q} a={f.a} />)}
+            {FF.FAQ.map((f, i) => <FaqItem key={i} q={f.q} a={fillShip(f.a)} />)}
             <div className="faq-cta">
               <p>¿No encuentras tu respuesta?</p>
               <a className="btn btn-primary" href="/contacto">Contáctanos <Icon name="arrow" size={18} /></a>
@@ -970,7 +971,7 @@ function ContentPage({ data, ctx }) {
             {data.blocks.map((b, i) => (
               <div className="cblock" key={i}>
                 <h3>{b.h}</h3>
-                <p>{b.p}</p>
+                <p>{fillShip(b.p)}</p>
               </div>
             ))}
           </div>
@@ -1049,8 +1050,8 @@ function PackPage({ ctx, route }) {
 
         <div className="pdp-trust" style={{ marginTop: 40, maxWidth: 520 }}>
           <div><Icon name="truck" size={18} /><span>Envío gratis en pedidos +{money(FF.FREE_SHIP)}</span></div>
-          <div><Icon name="shield" size={18} /><span>Productos 100% originales</span></div>
-          <div><Icon name="lab" size={18} /><span>Testeado en laboratorio</span></div>
+          <div><Icon name="shield" size={18} /><span>Original, sellado de fábrica</span></div>
+          <div><Icon name="lab" size={18} /><span>Etiqueta e ingredientes completos</span></div>
         </div>
       </div>
     </section>

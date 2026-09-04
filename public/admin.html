@@ -635,6 +635,12 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
             <input type="text" id="new-stat" placeholder="TEXTO EN MAYÚSCULAS" style="flex:1" />
             <button class="btn btn-primary" id="btn-add-stat">Añadir</button>
           </div>
+          <p style="color:var(--dim);font-size:12.5px;margin:12px 0 8px">
+            La cinta y la FAQ se guardan en el catálogo publicado, así que una versión vieja
+            puede seguir mostrándose aunque el código ya esté corregido. Este botón trae los
+            textos que vienen con la tienda; después hay que Publicar.
+          </p>
+          <button class="btn btn-ghost btn-sm" id="btn-restore-texts">Traer textos de fábrica (cinta y FAQ)</button>
         </div>
 
         <div class="settings-card">
@@ -2305,6 +2311,17 @@ document.getElementById('btn-add').onclick = () => {
   else if (curTab === 'packs') openPack(null);
   else if (curTab === 'blog') openBlog(null);
   else if (curTab === 'testimonios') openTestim(-1);
+};
+document.getElementById('btn-restore-texts').onclick = () => {
+  const d = (window.FF && FF.DEFAULTS) || {};
+  if (!d.stats || !d.faq) { toast('No hay textos de fábrica disponibles', true); return; }
+  if (!confirm('¿Sustituir la cinta y la FAQ por los textos que vienen con la tienda?\n\nSe pierden los cambios que hayas hecho en esos dos apartados.')) return;
+  D.stats = clone(d.stats);
+  D.faq = clone(d.faq);
+  save();
+  renderAjustes();
+  renderFaq();
+  toast('Textos restaurados. Ahora pulsa Publicar.');
 };
 document.getElementById('btn-add-stat').onclick = addStat;
 document.getElementById('new-stat').onkeydown = e => { if (e.key === 'Enter') addStat(); };

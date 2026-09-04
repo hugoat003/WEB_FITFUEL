@@ -200,7 +200,7 @@ function CtaBand({ onShop, user }) {
       <div className="ff-wrap">
         <h2 className="display">No esperes al lunes.</h2>
         <p>{user
-          ? "Envío gratis en toda Guatemala y entrega en 2 a 3 días hábiles."
+          ? `Envío gratis desde ${money(FF.FREE_SHIP || 400)} y entrega en 2 a 3 días hábiles en toda Guatemala.`
           : "Inicia sesión y obtén 10% de descuento en tu primer pedido."}</p>
         <button className="btn btn-primary btn-lg" onClick={onShop || (() => navigate("/catalogo"))}>Comprar ahora <Icon name="arrow" size={18} /></button>
       </div>
@@ -241,7 +241,7 @@ function Footer() {
               <img src="/logo-full.png" alt="FITFUEL" className="logo-png" />
             </a>
             <p style={{ color: "var(--text-dim)", maxWidth: 280, fontSize: 15 }}>
-              Suplementos deportivos testeados en laboratorio. Sin atajos, sin azúcares ocultos. Hecho para Guatemala.
+              Suplementos originales de distribuidor autorizado. Etiqueta completa y precios en quetzales. Hecho para Guatemala.
             </p>
             <div className="foot-contact">
               <a href={"mailto:" + c.email}><Icon name="mail" size={15} /> {c.email}</a>

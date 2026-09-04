@@ -66,7 +66,7 @@ function Header({ cartCount, bump, onCart, query, setQuery, route, user, onAuthO
 }
 
 function Marquee() {
-  const items = [...FF.STATS, ...FF.STATS];
+  const items = [...FF.STATS, ...FF.STATS].map(fillShip);
   return (
     <div className="marquee">
       <div className="marquee-track">

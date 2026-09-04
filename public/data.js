@@ -692,9 +692,12 @@ FF.BLOG = [
 ];
 
 // Stats marquee (Guatemala)
+// Solo afirmaciones que se pueden sostener. Antes decía "+50,000 ATLETAS" (una cifra
+// inventada) y "TESTEADO EN LABORATORIO" (FITFUEL revende, no analiza).
+// {envioGratis} lo rellena fillShip() con lo configurado en el panel.
 FF.STATS = [
-  "ENVÍO GRATIS +Q400", "TESTEADO EN LABORATORIO", "+50,000 ATLETAS", "PRODUCTOS 100% ORIGINALES",
-  "SIN AZÚCARES OCULTOS", "ENVÍO A TODA GUATEMALA",
+  "ENVÍO GRATIS DESDE {envioGratis}", "ENVÍO A TODA GUATEMALA", "PRECIOS EN QUETZALES",
+  "PRODUCTO ORIGINAL Y SELLADO", "PAGO CONTRA ENTREGA", "ETIQUETA COMPLETA A LA VISTA",
 ];
 
 // Datos de contacto / negocio (Guatemala). Tienda 100% en línea.
@@ -712,10 +715,10 @@ FF.CONTACT = {
 // Preguntas frecuentes
 FF.FAQ = [
   { q: "¿Hacen envíos a todo el país?", a: "Sí. Enviamos a los 22 departamentos de Guatemala. El tiempo estimado de entrega es de 2 a 3 días hábiles a cualquier punto del país." },
-  { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de Q35. En pedidos mayores a Q400 el envío es totalmente gratis a toda Guatemala." },
+  { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de {costoEnvio}. En pedidos desde {envioGratis} el envío es gratis a toda Guatemala." },
   { q: "¿Qué métodos de pago aceptan?", a: "Aceptamos pago contra entrega (efectivo) y transferencia bancaria. Si eliges transferencia, te enviamos los datos para completar el pago." },
-  { q: "¿Los productos son originales?", a: "100%. Todos nuestros suplementos son originales, sellados y testeados en laboratorio. Cada lote cuenta con su certificado de análisis." },
-  { q: "¿Aceptan devoluciones?", a: "Por higiene y seguridad del producto, no aceptamos devoluciones ni cambios una vez realizada la compra. Si tienes dudas sobre qué suplemento elegir, escríbenos por WhatsApp antes de comprar y te asesoramos sin compromiso." },
+  { q: "¿Los productos son originales?", a: "Sí. Compramos solo a marcas y distribuidores autorizados, y el producto llega sellado de fábrica, con su lote y su fecha de vencimiento a la vista. Los análisis de laboratorio los certifica cada fabricante: cuando un producto tiene un sello verificable (Creapure®, Banned Substance Tested), lo indicamos en su ficha." },
+  { q: "¿Aceptan devoluciones?", a: "Por higiene y seguridad del producto, no aceptamos devoluciones ni cambios una vez realizada la compra. Si tienes dudas sobre qué suplemento elegir, escríbenos desde la página de contacto antes de comprar y te asesoramos sin compromiso." },
   { q: "¿Cómo sé qué suplemento necesito?", a: "Usa nuestro selector de objetivos: eliges tu meta (ganar músculo, definir, energía o recuperación) y te mostramos exactamente lo que necesitas." },
 ];
 
@@ -762,7 +765,14 @@ FF.loadRemote = async function () {
 // Copia intacta del catálogo de fábrica, ANTES de aplicar lo que haya en este navegador.
 // El panel la usa para recuperar campos que su formulario no edita (descripción larga,
 // advertencias) y que antes se perdían al guardar un producto.
-FF.DEFAULTS = { products: JSON.parse(JSON.stringify(FF.PRODUCTS)), bundles: JSON.parse(JSON.stringify(FF.BUNDLES)) };
+FF.DEFAULTS = {
+  products: JSON.parse(JSON.stringify(FF.PRODUCTS)),
+  bundles: JSON.parse(JSON.stringify(FF.BUNDLES)),
+  // La cinta y la FAQ también, porque son textos con implicaciones legales: si el
+  // catálogo publicado se queda con una versión vieja, el panel puede recuperarlos.
+  stats: JSON.parse(JSON.stringify(FF.STATS)),
+  faq: JSON.parse(JSON.stringify(FF.FAQ)),
+};
 
 // ── Vista previa ───────────────────────────────────────────────────────────────
 // El panel guarda su copia de trabajo en `ff_data`. Durante mucho tiempo la tienda la

@@ -3,6 +3,17 @@ import React from "react";
 
 /* ---------- Moneda: Quetzal guatemalteco (GTQ) ---------- */
 const money = (n) => "Q" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Sustituye {envioGratis} y {costoEnvio} por lo que esté configurado en el panel.
+// Las cifras de envío estaban escritas a mano en la ayuda, la FAQ, la cinta y los metadatos:
+// al cambiarlas en el panel cambiaba el cobro, pero esos textos seguían prometiendo Q35/Q400.
+function fillShip(s) {
+  if (typeof s !== "string") return s;
+  const FF = window.FF || {};
+  return s
+    .replace(/\{envioGratis\}/g, money(FF.FREE_SHIP || 400))
+    .replace(/\{costoEnvio\}/g, money(FF.SHIP_COST || 35));
+}
 const num = (n) => Number(n).toLocaleString("en-US");
 
 /* ---------- Router de rutas reales (History API) ----------
@@ -285,4 +296,4 @@ function useBodyScrollLock(active) {
   }, [active]);
 }
 
-Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useBodyScrollLock, useCatalogTick });
+Object.assign(window, { money, fillShip, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useBodyScrollLock, useCatalogTick });

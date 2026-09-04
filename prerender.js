@@ -245,7 +245,7 @@ export function prerender() {
       add("/", {
         preloadImage: heroImage,
         title: "FITFUEL — Suplementos para rendir | Guatemala",
-        description: "Suplementos deportivos testados en laboratorio y 100% originales. Proteína, creatina y pre-entreno con envío a toda Guatemala. Precios en quetzales.",
+        description: "Suplementos deportivos originales de distribuidor autorizado. Proteína, creatina y pre-entreno con envío a toda Guatemala. Precios en quetzales.",
         image: SITE + "/logo-mark.png",
         jsonLd: {
           "@context": "https://schema.org",
@@ -266,7 +266,7 @@ export function prerender() {
       add("/catalogo", { title: "Catálogo de suplementos — FITFUEL",
         description: "Proteínas, creatina, pre-entreno, aminoácidos y vitaminas originales, con envío a toda Guatemala en 2 a 3 días hábiles." }, { priority: 0.9 });
       add("/ofertas", { title: "Ofertas — FITFUEL",
-        description: "Suplementos originales con descuento. Precios en quetzales y envío gratis en pedidos mayores a Q400." }, { priority: 0.7 });
+        description: `Suplementos originales con descuento. Precios en quetzales y envío gratis en pedidos desde Q${FF.FREE_SHIP || 400}.` }, { priority: 0.7 });
       add("/packs", { title: "Packs de suplementos — FITFUEL",
         description: "Combinaciones pensadas por objetivo, más baratas que comprar cada producto por separado." }, { priority: 0.8 });
       add("/objetivos", { title: "Encuentra tu suplemento por objetivo — FITFUEL",
@@ -301,7 +301,7 @@ export function prerender() {
         const url = SITE + route;
         add(route, {
           title: `${p.name}${p.flavor ? " · " + p.flavor : ""} — FITFUEL`,
-          description: clip(p.blurb || `${p.name} original, testado en laboratorio. Envío a toda Guatemala.`),
+          description: clip(p.blurb || `${p.name} original y sellado de fábrica. Envío a toda Guatemala.`),
           ogType: "product",
           image: p.image ? (p.image.startsWith("http") ? p.image : SITE + p.image) : SITE + "/logo-mark.png",
           jsonLd: productLd(p, FF, url),
