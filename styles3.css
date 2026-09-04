@@ -106,6 +106,47 @@
 
 /* ---------- BLOG ---------- */
 .bl-excerpt { font-size: 14px; color: var(--text-dim); line-height: 1.5; margin: 2px 0 0; }
+
+/* ---------- Portada dibujada del artículo ----------
+   Tiene que funcionar en dos cajas muy distintas: 385x216 en la rejilla de tarjetas y
+   760x380 en la cabecera del artículo. Por eso el número se mide contra la altura del
+   propio contenedor (cqh) en vez de llevar un tamaño fijo. */
+.bl-cover {
+  position: relative; width: 100%; height: 100%; overflow: hidden;
+  container-type: size;
+  background:
+    radial-gradient(130% 100% at 14% 0%, oklch(from var(--ph-color) 0.70 0.16 h / .34), transparent 64%),
+    repeating-linear-gradient(135deg,
+      rgba(234, 231, 223, .045) 0 14px,
+      rgba(234, 231, 223, 0) 14px 28px),
+    var(--bg-2);
+}
+.bl-cover-n {
+  position: absolute; left: 7%; top: 50%; transform: translateY(-52%);
+  font-family: var(--font-display); font-weight: 900; line-height: .78;
+  letter-spacing: -.05em;
+  font-size: clamp(64px, 20vw, 150px);            /* reserva por si no hay contenedor */
+  color: transparent; -webkit-text-stroke: 1.5px var(--border-2);
+}
+@container (min-height: 1px) {
+  .bl-cover-n { font-size: 52cqh; -webkit-text-stroke-width: 0.9cqh; }
+}
+.bl-cover-cat {
+  position: absolute; left: 7%; bottom: 9%;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--text);
+  background: var(--accent-soft); border: 1px solid var(--border);
+  padding: 5px 11px; border-radius: 100px; backdrop-filter: blur(2px);
+}
+.bl-cover-mark {
+  position: absolute; right: 7%; bottom: 9%;
+  font-family: var(--font-display); font-weight: 900; font-size: 11px;
+  letter-spacing: .16em; color: var(--text-dim); opacity: .5;
+}
+/* En la tarjeta, la categoría ya va justo debajo en .bl-tag: en la portada sobra. */
+.bl-vis .bl-cover-cat { display: none; }
+/* En la cabecera del artículo hay el doble de sitio: respira más. */
+.article-vis .bl-cover-cat, .article-vis .bl-cover-mark { font-size: 12px; }
 .article-title { font-size: clamp(30px, 5vw, 54px); margin: 12px 0 22px; text-wrap: balance; }
 .article-vis { aspect-ratio: 16/8; border-radius: var(--r-lg); overflow: hidden; margin-bottom: 28px; }
 .article-body p { font-size: 18px; line-height: 1.7; color: var(--text); margin: 0 0 20px; }

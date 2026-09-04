@@ -271,8 +271,8 @@ export function prerender() {
         description: "Combinaciones pensadas por objetivo, más baratas que comprar cada producto por separado." }, { priority: 0.8 });
       add("/objetivos", { title: "Encuentra tu suplemento por objetivo — FITFUEL",
         description: "Elige tu meta —ganar músculo, definir, energía o recuperación— y te decimos exactamente qué necesitas." }, { priority: 0.7 });
-      add("/blog", { title: "Blog — FITFUEL",
-        description: "Guías sin humo sobre creatina, proteína y pre-entreno, escritas con base en evidencia." }, { priority: 0.6 });
+      add("/blog", { title: "Cómo se toma — Guías FITFUEL",
+        description: "Dosis, momentos y errores comunes con creatina, proteína y pre-entreno. Guías cortas y directas." }, { priority: 0.6 });
       add("/resenas", { title: "Reseñas de clientes — FITFUEL",
         description: "Opiniones reales de personas que ya compraron suplementos en FITFUEL." }, { priority: 0.5 });
       add("/contacto", { title: "Contacto — FITFUEL",

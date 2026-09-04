@@ -497,20 +497,33 @@ function ProductPage({ ctx, route }) {
             <div>
               <a href="/"><img src="/logo-full.png" alt="FITFUEL" className="dp-logo" style={{ opacity: .95 }} /></a>
               <div className="dp-foot-links">
+                {/* La ficha se dibuja fuera del marco del sitio, así que este pie es la única
+                    salida que tiene el cliente. Le faltaban ocho destinos que sí están en el
+                    pie del resto de la web: packs, ofertas, blog, devoluciones, preguntas
+                    frecuentes, reseñas, calidad y cookies. */}
                 <div className="dp-foot-col">
-                  <div className="dp-foot-col-h dp-mono">Navegación</div>
-                  <a href="/">Inicio</a>
-                  <a href="/catalogo">Catálogo</a>
-                  <a href="/nosotros">Sobre FITFUEL</a>
-                  <a href="/ayuda/envios">Envíos</a>
-                  <a href="/contacto">Contacto</a>
-                </div>
-                <div className="dp-foot-col">
-                  <div className="dp-foot-col-h dp-mono">Catálogo</div>
+                  <div className="dp-foot-col-h dp-mono">Tienda</div>
                   <a href="/catalogo?cat=proteina">Proteínas</a>
                   <a href="/catalogo?cat=creatina">Creatina</a>
                   <a href="/catalogo?cat=pre">Pre-Entreno</a>
+                  <a href="/packs">Packs</a>
+                  <a href="/ofertas">Ofertas</a>
                   <a href="/catalogo">Ver todo</a>
+                </div>
+                <div className="dp-foot-col">
+                  <div className="dp-foot-col-h dp-mono">Ayuda</div>
+                  <a href="/ayuda/envios">Envíos</a>
+                  <a href="/ayuda/devoluciones">Devoluciones</a>
+                  <a href="/ayuda/faq">Preguntas frecuentes</a>
+                  <a href="/resenas">Reseñas</a>
+                  <a href="/contacto">Contacto</a>
+                </div>
+                <div className="dp-foot-col">
+                  <div className="dp-foot-col-h dp-mono">FITFUEL</div>
+                  <a href="/">Inicio</a>
+                  <a href="/nosotros">Sobre nosotros</a>
+                  <a href="/calidad">Calidad</a>
+                  <a href="/blog">Cómo se toma</a>
                 </div>
               </div>
             </div>
@@ -536,7 +549,7 @@ function ProductPage({ ctx, route }) {
             </div>
           </div>
           <div className="dp-foot-bottom">
-            <div className="sm dp-mono"><a href="/privacidad" style={{ color: "inherit" }}>Política de privacidad</a><br /><a href="/terminos" style={{ color: "inherit" }}>Términos y condiciones</a></div>
+            <div className="sm dp-mono"><a href="/privacidad" style={{ color: "inherit" }}>Política de privacidad</a><br /><a href="/terminos" style={{ color: "inherit" }}>Términos y condiciones</a><br /><a href="/cookies" style={{ color: "inherit" }}>Política de cookies</a></div>
             <div className="sm dp-mono">© 2026 FITFUEL</div>
             <a href="#top" className="dp-round" aria-label="Volver arriba"><Icon name="arrow" size={16} style={{ transform: "rotate(-90deg)" }} /></a>
             <span className="dp-foot-brand">FITFUEL</span>
@@ -554,11 +567,11 @@ function BlogPage() {
     <section className="page">
       <div className="ff-wrap">
         <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Blog" }]} />
-        <PageHead eyebrow="Aprende" title="Blog FITFUEL" sub="Ciencia aplicada al gimnasio, explicada fácil." />
+        <PageHead eyebrow="Aprende" title="Cómo se toma" sub="Dosis, momentos y errores comunes." />
         <div className="blog-grid">
           {FF.BLOG.map((b) => (
             <a className="bl" key={b.id} href={"/blog/" + b.id}>
-              <div className="bl-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
+              <div className="bl-vis"><BlogVisual post={b} /></div>
               <div className="bl-body">
                 <span className="bl-tag">{b.cat}</span>
                 <h4>{b.title}</h4>
@@ -585,7 +598,7 @@ function BlogPostPage({ route }) {
         <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Blog", to: "/blog" }, { label: b.cat }]} />
         <span className="bl-tag">{b.cat} · {b.read} de lectura</span>
         <h1 className="display article-title">{b.title}</h1>
-        <div className="article-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
+        <div className="article-vis"><BlogVisual post={b} /></div>
         <article className="article-body">
           {(b.body || [b.excerpt]).map((par, i) => <p key={i}>{par}</p>)}
         </article>
@@ -597,7 +610,7 @@ function BlogPostPage({ route }) {
             <div className="blog-grid">
               {others.map((o) => (
                 <a className="bl" key={o.id} href={"/blog/" + o.id}>
-                  <div className="bl-vis"><ProdImg image={o.image} label="imagen artículo" hue={o.hue} /></div>
+                  <div className="bl-vis"><BlogVisual post={o} /></div>
                   <div className="bl-body">
                     <span className="bl-tag">{o.cat}</span>
                     <h4>{o.title}</h4>

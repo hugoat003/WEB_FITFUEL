@@ -91,14 +91,40 @@ function Testimonials({ compact = false }) {
   );
 }
 
+/* ── Portada de artículo ────────────────────────────────────────────────────────
+   Ningún artículo trae foto, así que caía en el marcador genérico de producto y se
+   leía "IMAGEN ARTÍCULO" sobre unas rayas. Esto dibuja una portada editorial con lo
+   que el artículo ya tiene —su tono, su categoría y su posición— sin campos nuevos
+   (el panel reconstruye el artículo entero al guardar y los perdería).
+   No repite el título: ya va justo debajo en la tarjeta, y encima en el artículo.
+   Si algún día se sube una foto desde el panel, la foto manda. */
+function BlogCover({ post }) {
+  const i = (FF.BLOG || []).findIndex((x) => x.id === post.id);
+  const n = String((i < 0 ? 0 : i) + 1).padStart(2, "0");
+  return (
+    <div className="bl-cover" style={{ "--ph-color": `oklch(0.72 0.17 ${post.hue ?? 200})` }}>
+      <span className="bl-cover-n" aria-hidden="true">{n}</span>
+      <span className="bl-cover-cat">{post.cat}</span>
+      <span className="bl-cover-mark" aria-hidden="true">FITFUEL</span>
+    </div>
+  );
+}
+
+// Foto real si la hay; si no, la portada dibujada.
+function BlogVisual({ post }) {
+  return post.image
+    ? <ProdImg image={post.image} label={post.title} />
+    : <BlogCover post={post} />;
+}
+
 function Blog({ compact = false }) {
   return (
     <section className="section" id="blog" style={compact ? { paddingTop: 0 } : null}>
       <div className="ff-wrap">
         <div className="sec-head">
           <div>
-            <h2 className="display">Consejos sin humo</h2>
-            <p>Ciencia aplicada al gimnasio, explicada fácil.</p>
+            <h2 className="display">Cómo se toma</h2>
+            <p>Dosis, momentos y errores comunes.</p>
           </div>
           {compact && (
             <a className="btn btn-ghost" href="/blog">Ver todo el blog <Icon name="arrow" size={18} /></a>
@@ -107,7 +133,7 @@ function Blog({ compact = false }) {
         <div className="blog-grid">
           {FF.BLOG.map((b) => (
             <a className="bl" key={b.id} href={"/blog/" + b.id}>
-              <div className="bl-vis"><ProdImg image={b.image} label="imagen artículo" hue={b.hue} /></div>
+              <div className="bl-vis"><BlogVisual post={b} /></div>
               <div className="bl-body">
                 <span className="bl-tag">{b.cat}</span>
                 <h4>{b.title}</h4>
@@ -270,4 +296,4 @@ function Footer() {
   );
 }
 
-Object.assign(window, { Bundles, Testimonials, Blog, CartDrawer, CtaBand, Footer, FOOT_COLS });
+Object.assign(window, { Bundles, Testimonials, Blog, BlogCover, BlogVisual, CartDrawer, CtaBand, Footer, FOOT_COLS });
