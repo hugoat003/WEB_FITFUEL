@@ -89,6 +89,30 @@ function readContentPages(root) {
   return out;
 }
 
+/* ── Catálogo publicado incrustado en el arranque ──────────────────────────
+   public/data.js trae el catálogo de fábrica, cuyas rutas /img/*.webp en su mayoría ya no
+   existen: el comodín SPA les devuelve el HTML con estado 200, así que la primera pintura
+   disparaba una decena de peticiones que no se pueden decodificar como imagen. Y la foto
+   buena no se pedía hasta que llegaba data.json de Supabase.
+   Al incrustar aquí lo publicado, la primera pintura ya trae las URLs correctas.
+   FF.loadRemote() sigue ejecutándose después, así que publicar desde el panel sin volver a
+   desplegar se sigue viendo igual que antes. */
+function bakeCatalog(outDir, published, ctx) {
+  const file = path.join(outDir, "data.js");
+  if (!fs.existsSync(file)) return;
+  const src = fs.readFileSync(file, "utf8");
+  if (src.includes("FF.__BAKED")) return;
+  const json = JSON.stringify(published)
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+  fs.writeFileSync(file, src + `
+// Catálogo publicado en el momento del build (lo incrusta prerender.js).
+FF.__BAKED = 1;
+if (!FF.PREVIEW) { try { FF.applyData(${json}); } catch (e) {} }
+`);
+  ctx?.info?.(`catálogo incrustado en dist/data.js (+${Math.round(json.length / 1024)} KB)`);
+}
+
 /* ── Inyección de metadatos en la plantilla ─────────────────────────────── */
 function renderHtml(template, meta) {
   let html = template;
@@ -109,6 +133,12 @@ function renderHtml(template, meta) {
   // /checkout y /cuenta no deben aparecer en buscadores, y el 404 tampoco.
   if (meta.noindex) extra.push('<meta name="robots" content="noindex,follow" />');
   if (meta.image) extra.push('<meta name="twitter:card" content="summary_large_image" />');
+  // La URL real de la foto del hero solo se conocía tras bajar el bundle y consultar el
+  // catálogo en Supabase: unos 3 s en 4G antes de siquiera empezar a pedirla. Aquí ya la
+  // sabemos, así que el navegador la pide mientras todavía está leyendo el <head>.
+  if (meta.preloadImage) {
+    extra.push(`<link rel="preload" as="image" href="${esc(meta.preloadImage)}" fetchpriority="high" />`);
+  }
   if (meta.jsonLd) {
     extra.push(`<script type="application/ld+json">${jsonLdSafe(meta.jsonLd)}</script>`);
   }
@@ -192,9 +222,18 @@ export function prerender() {
       if (published && typeof FF.applyData === "function") {
         FF.applyData(published);
         this.info?.("catálogo publicado descargado para los metadatos");
+        bakeCatalog(outDir, published, this);
       } else {
         this.warn?.("usando el catálogo local de public/data.js (no se pudo leer el publicado)");
       }
+
+      // Misma selección que el carrusel del Hero (components-shop.jsx), para precargar
+      // exactamente la foto que verá el visitante y no otra.
+      const carousel = (FF.PRODUCTS || []).filter((p) => p.carousel)
+        .sort((a, b) => (a.carouselOrder ?? Infinity) - (b.carouselOrder ?? Infinity));
+      const heroList = carousel.length ? carousel
+        : (FF.PRODUCTS || []).slice().sort((a, b) => (b.reviews || 0) - (a.reviews || 0)).slice(0, 5);
+      const heroImage = heroList[0] && heroList[0].image ? heroList[0].image : null;
 
       const content = readContentPages(root);
       const pages = [];   // { route, meta, priority, inSitemap }
@@ -204,6 +243,7 @@ export function prerender() {
 
       // ── Portada
       add("/", {
+        preloadImage: heroImage,
         title: "FITFUEL — Suplementos para rendir | Guatemala",
         description: "Suplementos deportivos testados en laboratorio y 100% originales. Proteína, creatina y pre-entreno con envío a toda Guatemala. Precios en quetzales.",
         image: SITE + "/logo-mark.png",

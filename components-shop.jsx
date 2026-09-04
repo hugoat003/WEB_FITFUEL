@@ -91,12 +91,22 @@ function Hero() {
   const [idx, setIdx] = React.useState(0);
   const total = slides.length;
   const go = (i) => setIdx(((i % total) + total) % total);
-  // Temporizador reiniciable: al cambiar idx (auto o manual) reinicia la cuenta de 3 s.
+
+  // El carrusel no empieza a girar hasta que la primera foto está cargada. Antes rotaba a
+  // los 5 s pasara lo que pasara, así que en móvil pedía la segunda y la tercera mientras
+  // la primera todavía venía en camino, y todas competían por el mismo ancho de banda.
+  // El plazo de seguridad evita que se quede congelado si la imagen no llega nunca.
+  const [ready, setReady] = React.useState(false);
   React.useEffect(() => {
-    if (total < 2) return;
+    const t = setTimeout(() => setReady(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  // Temporizador reiniciable: al cambiar idx (auto o manual) reinicia la cuenta.
+  React.useEffect(() => {
+    if (total < 2 || !ready) return;
     const t = setTimeout(() => setIdx((i) => (i + 1) % total), 5000);
     return () => clearTimeout(t);
-  }, [idx, total]);
+  }, [idx, total, ready]);
 
   if (!slides.length) return null;
   const p = slides[idx];
@@ -132,7 +142,8 @@ function Hero() {
         </div>
         <div className="ehero-media">
           <a href={"/producto/" + p.id} className="ehero-stage" key={"m" + idx} aria-label={p.name}>
-            <ProdImg image={p.image} label="producto destacado" hue={p.hue} tub={true} />
+            <ProdImg image={p.image} label="producto destacado" hue={p.hue} tub={true}
+              priority={true} onLoad={() => setReady(true)} onError={() => setReady(true)} />
           </a>
           <button className="ehero-nav prev" onClick={() => go(idx - 1)} aria-label="Producto anterior">
             <Icon name="arrow" size={18} style={{ transform: "rotate(180deg)" }} />

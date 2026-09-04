@@ -16,6 +16,10 @@
 <link rel="icon" href="/logo-mark.png" type="image/png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Las fotos de producto viven en Supabase Storage. Sin esto, el DNS y el TLS de ese
+         dominio se pagan justo cuando toca pedir la imagen del hero, que es el LCP. -->
+    <link rel="preconnect" href="https://dwdxnpyybzpcjetxedyq.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://dwdxnpyybzpcjetxedyq.supabase.co" />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 <script>
   // Compatibilidad con los enlaces antiguos: la tienda usaba rutas por hash

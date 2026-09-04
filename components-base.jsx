@@ -146,9 +146,15 @@ function Ph({ label, hue, className = "", tub = false }) {
 }
 
 // Imagen real si existe (image = data URL o URL); si no, placeholder con tono.
-function ProdImg({ image, label, hue, tub = false, className = "" }) {
+// `priority` es para la imagen que se ve nada más entrar (la del carrusel de portada).
+// Con loading="lazy", que era lo que llevaban TODAS, el navegador la trata como no urgente
+// justo cuando es el elemento más grande de la pantalla: era el LCP de la web.
+function ProdImg({ image, label, hue, tub = false, className = "", priority = false, onLoad, onError }) {
   if (image) {
-    return <img className={"ph-img " + className} src={image} alt={label || ""} loading="lazy" />;
+    return <img className={"ph-img " + className} src={image} alt={label || ""}
+      loading={priority ? "eager" : "lazy"}
+      fetchpriority={priority ? "high" : undefined}
+      decoding="async" onLoad={onLoad} onError={onError} />;
   }
   return <Ph label={label} hue={hue} tub={tub} className={className} />;
 }
