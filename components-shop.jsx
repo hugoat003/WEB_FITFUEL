@@ -373,7 +373,7 @@ function QuickView({ product, onClose, onAdd }) {
       <div className="modal" onClick={(e) => e.stopPropagation()} ref={trapRef} role="dialog" aria-modal="true">
         <div className="modal-vis">
           <button className="icon-btn modal-close" onClick={onClose} aria-label="Cerrar"><Icon name="x" size={18} /></button>
-          {product.badge && <span className="pcard-badge" style={{ top: 26, left: 26 }}>{product.badge}</span>}
+          {product.badge && <span className="pcard-badge">{product.badge}</span>}
           <ProdImg image={activeImage} label="foto producto · bote" hue={product.hue} tub={true} />
         </div>
         <div className="modal-body">

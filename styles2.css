@@ -192,6 +192,16 @@
   pointer-events: none;
 }
 .pcard:hover .pcard-quick { opacity: 1; transform: none; pointer-events: auto; }
+/* Vista rápida es un gesto de ratón. En una pantalla táctil el primer toque se gasta en
+   "aplicar el hover" —aparece el botón y no pasa nada más— y hay que tocar dos veces para
+   entrar al producto. Donde no hay ratón, no se muestra: un toque abre la ficha. */
+@media (hover: none) {
+  .pcard-quick { display: none; }
+}
+
+/* La etiqueta de Vista rápida tiene su propio anclaje: el de la tarjeta del catálogo se
+   mueve en móvil y antes chocaban. */
+.modal-vis .pcard-badge { top: 26px; left: 26px; }
 .pcard-body { padding: 4px 18px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .pcard-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .pcard-cat { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
