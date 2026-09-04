@@ -108,7 +108,15 @@ function HomePage({ ctx }) {
           <div className="ecats-grid">
             {cats.map((c, i) => (
               <a key={c.id} className="ecat" href={"/catalogo?cat=" + c.id}>
-                <Ph label={c.label} hue={catHues[i % catHues.length]} tub={true} />
+                {/* Foto del primer producto de la categoría que tenga una. Antes salía el
+                    marcador rayado con el nombre. Así se llena sola conforme se suben fotos
+                    desde el panel, sin mantener una lista de imágenes por separado. */}
+                {(() => {
+                  const foto = (FF.PRODUCTS || []).find((x) => x.cat === c.id && x.image);
+                  return foto
+                    ? <ProdImg image={foto.image} label={c.label} />
+                    : <Ph label={c.label} hue={catHues[i % catHues.length]} tub={true} />;
+                })()}
                 <div className="ecat-grad" />
                 <span className="ecat-n">{String(i + 1).padStart(2, "0")}</span>
                 <div className="ecat-foot">

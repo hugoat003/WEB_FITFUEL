@@ -224,7 +224,9 @@ body {
 .ecats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: clamp(12px,1.5vw,18px); }
 .ecat { position: relative; display: block; border-radius: 14px; overflow: hidden; transition: transform .2s var(--ease); }
 .ecat:hover { transform: translateY(-4px); }
-.ecat .ph { height: clamp(240px,26vw,320px); border-radius: 14px; }
+/* La altura vivía solo en .ph. Al pasar a foto real hace falta también en .ph-img,
+   o la tarjeta de categoría se queda sin alto. */
+.ecat .ph, .ecat .ph-img { height: clamp(240px,26vw,320px); border-radius: 14px; }
 .ecat-grad { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,.6)); pointer-events: none; }
 .ecat-n { position: absolute; top: 14px; left: 14px; font-family: var(--font-mono); font-size: 10px; color: var(--text); }
 .ecat-foot { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }

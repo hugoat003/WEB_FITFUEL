@@ -161,11 +161,18 @@ function Ph({ label, hue, className = "", tub = false }) {
 // Con loading="lazy", que era lo que llevaban TODAS, el navegador la trata como no urgente
 // justo cuando es el elemento más grande de la pantalla: era el LCP de la web.
 function ProdImg({ image, label, hue, tub = false, className = "", priority = false, onLoad, onError }) {
-  if (image) {
+  // Si la imagen no carga, se cae al marcador en vez de dejar un hueco roto. Pasa de
+  // verdad: quedan productos apuntando a rutas /img/*.webp que ya no existen, y el
+  // comodín del servidor les devuelve el HTML con estado 200, así que el navegador
+  // recibe una "imagen" que no puede decodificar.
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => { setFailed(false); }, [image]);
+  if (image && !failed) {
     return <img className={"ph-img " + className} src={image} alt={label || ""}
       loading={priority ? "eager" : "lazy"}
       fetchpriority={priority ? "high" : undefined}
-      decoding="async" onLoad={onLoad} onError={onError} />;
+      decoding="async" onLoad={onLoad}
+      onError={(e) => { setFailed(true); onError && onError(e); }} />;
   }
   return <Ph label={label} hue={hue} tub={tub} className={className} />;
 }
