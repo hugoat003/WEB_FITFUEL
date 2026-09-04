@@ -18,34 +18,7 @@
 .hd-search { border: 1px solid var(--border); }
 .hd-search-ic { display: grid; place-items: center; color: inherit; }
 
-/* ---------- MENÚ MÓVIL ---------- */
-.m-scrim {
-  position: fixed; inset: 70px 0 0; z-index: 55; background: oklch(0 0 0 / .5);
-  backdrop-filter: blur(3px); animation: ff-rise .2s var(--ease);
-}
-.m-menu {
-  position: fixed; top: 70px; left: 0; right: 0; z-index: 58;
-  background: var(--bg); border-bottom: 1px solid var(--border-2);
-  transform: translateY(-12px); opacity: 0; pointer-events: none;
-  transition: .25s var(--ease); padding: 16px 20px 22px;
-  max-height: calc(100vh - 70px); overflow-y: auto;
-}
-.m-menu.open { transform: none; opacity: 1; pointer-events: auto; }
-.m-search {
-  display: flex; align-items: center; gap: 10px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 100px; padding: 12px 16px;
-  margin-bottom: 14px; color: var(--text-dim);
-}
-.m-search input { background: none; border: none; outline: none; color: var(--text); font-size: 15px; width: 100%; }
-.m-nav { display: flex; flex-direction: column; }
-.m-nav a {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 15px 6px; font-size: 17px; font-weight: 600; border-bottom: 1px solid var(--border);
-  color: var(--text);
-}
-.m-nav a:last-child { border-bottom: none; }
-.m-nav a.on { color: var(--accent); }
-.m-nav a svg { color: var(--text-dim); }
+/* El menú móvil vive ahora en mobile-menu.css (.ff-mobile-menu-*). */
 
 /* ---------- ESTRUCTURA DE PÁGINA ---------- */
 .page { padding-top: 28px; min-height: 60vh; }
@@ -506,7 +479,7 @@ a.contact-row:hover { background: var(--bg-2); }
   .checkout-form input, .checkout-form select,
   .review-form input, .review-form select, .review-form textarea,
   .contact-form input, .contact-form textarea,
-  .auth-form input, .co-promo-input, .m-search input {
+  .auth-form input, .co-promo-input, .ff-mobile-menu-search input {
     font-size: 16px;
   }
 }

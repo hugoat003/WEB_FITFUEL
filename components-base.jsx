@@ -238,4 +238,45 @@ function useFocusTrap(active, onClose) {
   return ref;
 }
 
-Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useCatalogTick });
+// Bloquea el scroll del fondo mientras hay un overlay abierto. Con contador, para que dos
+// overlays abiertos a la vez no se desbloqueen entre ellos.
+//
+// `overflow: hidden` en <html> no sirve: deja el documento sin altura scrollable y el
+// navegador salta al principio, así que abrir el menú a media página movía la página.
+// Con `position: fixed` no se mueve nada, pero al soltar hay que devolver la posición... y
+// solo si el visitante sigue en la misma página: si cerró el menú pulsando un enlace, la
+// app ya lo sube al inicio (app.jsx) y restaurar aquí competiría con eso.
+let __ffLocks = 0;
+let __ffPrevBody = null;
+function useBodyScrollLock(active) {
+  React.useEffect(() => {
+    if (!active) return;
+    const b = document.body;
+    const path0 = location.pathname;
+    if (__ffLocks === 0) {
+      const y = window.scrollY || window.pageYOffset || 0;
+      __ffPrevBody = { position: b.style.position, top: b.style.top, left: b.style.left,
+                       right: b.style.right, width: b.style.width, y };
+      b.style.position = "fixed";
+      b.style.top = -y + "px";
+      b.style.left = "0";
+      b.style.right = "0";
+      b.style.width = "100%";
+    }
+    __ffLocks++;
+    return () => {
+      __ffLocks = Math.max(0, __ffLocks - 1);
+      if (__ffLocks !== 0 || !__ffPrevBody) return;
+      const prev = __ffPrevBody;
+      __ffPrevBody = null;
+      b.style.position = prev.position; b.style.top = prev.top;
+      b.style.left = prev.left; b.style.right = prev.right; b.style.width = prev.width;
+      // `behavior: instant` a propósito: el sitio tiene `scroll-behavior: smooth` en <html>
+      // (styles.css), así que un scrollTo normal aquí animaría la vuelta y al cerrar el menú
+      // se vería la página volando desde arriba hasta donde estaba el visitante.
+      if (location.pathname === path0) window.scrollTo({ top: prev.y, left: 0, behavior: "instant" });
+    };
+  }, [active]);
+}
+
+Object.assign(window, { money, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useBodyScrollLock, useCatalogTick });

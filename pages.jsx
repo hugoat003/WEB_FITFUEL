@@ -224,6 +224,7 @@ function ProductPage({ ctx, route }) {
   React.useEffect(() => {
     const first = FF.variantsOf(p)[0] || {};
     setSelFlavor(first.flavor || ""); setSelSize(first.size || ""); setImgIdx(0);
+    setMenuOpen(false);
     window.scrollTo(0, 0);
   }, [id]);
   if (!p) return <NotFoundPage msg="No encontramos ese producto." />;
@@ -268,7 +269,8 @@ function ProductPage({ ctx, route }) {
         <section className="dp-hero" id="top">
           <div className="dp-nav">
             <div className="dp-nav-l">
-              <button className="dp-iconbtn" onClick={() => setMenuOpen(true)} aria-label="Menú"><Icon name="menu" size={20} stroke={1.8} /></button>
+              <button className="dp-iconbtn" onClick={() => setMenuOpen(true)} aria-label="Menú"
+                aria-expanded={menuOpen} aria-controls="ff-mobile-menu"><BurgerIcon open={menuOpen} size={20} /></button>
               <span className="dp-nav-label dp-mono">:: Catálogo</span>
             </div>
             <a href="/" aria-label="Inicio"><img src="/logo-full.png" alt="FITFUEL" className="dp-logo" /></a>
@@ -411,22 +413,10 @@ function ProductPage({ ctx, route }) {
           </div>
         </section>
 
-        {/* Drawer móvil */}
-        {menuOpen && (
-          <div className="dp-drawer-scrim" onClick={() => setMenuOpen(false)}>
-            <div className="dp-drawer" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button className="dp-iconbtn" onClick={() => setMenuOpen(false)} aria-label="Cerrar"><Icon name="x" size={20} /></button>
-              </div>
-              <div className="dp-drawer-nav">
-                <a href="/" onClick={() => setMenuOpen(false)}>Inicio</a>
-                <a href="/catalogo" onClick={() => setMenuOpen(false)}>Catálogo</a>
-                <a href="/packs" onClick={() => setMenuOpen(false)}>Packs</a>
-                <a href="/contacto" onClick={() => setMenuOpen(false)}>Contacto</a>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Mismo menú que el resto del sitio (components-nav.jsx). */}
+        <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} route={route}
+          query={ctx.query} setQuery={ctx.setQuery} user={ctx.user} cartCount={cartCount}
+          onAuthOpen={ctx.openAuth} onCart={ctx.openCart} />
 
         {/* ===== STATEMENT (specs) ===== */}
         <section className="dp-stmt">

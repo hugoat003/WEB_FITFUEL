@@ -28,8 +28,9 @@ function Header({ cartCount, bump, onCart, query, setQuery, route, user, onAuthO
   return (
     <header className="hd">
       <div className="ff-wrap hd-in">
-        <button className="icon-btn hd-burger" aria-label="Menú" onClick={() => setMenuOpen((v) => !v)}>
-          <Icon name={menuOpen ? "x" : "menu"} size={20} />
+        <button className="icon-btn hd-burger" aria-label="Menú" aria-expanded={menuOpen}
+          aria-controls="ff-mobile-menu" onClick={() => setMenuOpen((v) => !v)}>
+          <BurgerIcon open={menuOpen} size={20} />
         </button>
         <a className="logo" href="/" onClick={() => setMenuOpen(false)}>
           <img src="/logo-full.png" alt="FITFUEL" className="logo-png" />
@@ -57,23 +58,9 @@ function Header({ cartCount, bump, onCart, query, setQuery, route, user, onAuthO
         </button>
       </div>
 
-      {/* Menú móvil */}
-      {menuOpen && <div className="m-scrim" onClick={() => setMenuOpen(false)} />}
-      <div className={"m-menu" + (menuOpen ? " open" : "")}>
-        <form className="m-search" onSubmit={submitSearch}>
-          <Icon name="search" size={18} />
-          <input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Buscar productos…" />
-        </form>
-        <nav className="m-nav">
-          {NAV_LINKS.map((l) => (
-            <a key={l.to} href={toPath(l.to)} className={isActive(l.to) ? "on" : ""}>
-              {l.label} <Icon name="chevron" size={18} />
-            </a>
-          ))}
-          <a href="/resenas">Reseñas <Icon name="chevron" size={18} /></a>
-          <a href="/ayuda/faq">Ayuda <Icon name="chevron" size={18} /></a>
-        </nav>
-      </div>
+      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} route={route}
+        query={query} setQuery={setQuery} user={user} cartCount={cartCount}
+        onAuthOpen={onAuthOpen} onCart={onCart} />
     </header>
   );
 }

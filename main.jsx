@@ -6,10 +6,12 @@ import "./styles.css";
 import "./styles2.css";
 import "./styles3.css";
 import "./pdp.css";
+import "./mobile-menu.css";
 
 import "./tweaks-panel.jsx";
 import "./supabase.js";
 import "./components-base.jsx";
+import "./components-nav.jsx";
 import "./components-shop.jsx";
 import "./components-extra.jsx";
 import "./components-auth.jsx";
