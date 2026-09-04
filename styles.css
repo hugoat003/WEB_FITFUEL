@@ -154,7 +154,11 @@ body {
 .ehero-proof-sub { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; color: var(--cream-dim); margin-top: 4px; line-height: 1.6; }
 .ehero-sep { width: 1px; height: 32px; background: rgba(20,19,15,.2); }
 .ehero-media { position: relative; }
-.ehero-stage { display: block; height: clamp(340px,42vw,500px); border-radius: 16px; overflow: hidden; animation: eheroImgIn .6s cubic-bezier(.22,.61,.36,1) both; }
+.ehero-stage { display: block; height: clamp(340px,42vw,500px); border-radius: 16px; overflow: hidden; }
+/* La animación de entrada se re-dispara con una clase, no recreando el elemento: cada vez
+   que React destruía y volvía a crear esta imagen, el navegador la contaba como una
+   "pintura más grande" nueva y el LCP saltaba al momento del último giro del carrusel. */
+.ehero-stage.is-in { animation: eheroImgIn .6s cubic-bezier(.22,.61,.36,1) both; }
 .ehero-stage .ph, .ehero-stage .ph-img { width: 100%; height: 100%; border-radius: 16px; }
 @keyframes eheroImgIn { from { opacity: 0; transform: scale(1.05); } to { opacity: 1; transform: scale(1); } }
 .ehero-nav {

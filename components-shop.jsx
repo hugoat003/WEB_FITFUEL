@@ -101,6 +101,18 @@ function Hero() {
     const t = setTimeout(() => setReady(true), 4000);
     return () => clearTimeout(t);
   }, []);
+  // La imagen del hero se mantiene montada y solo cambia de src; la animación de entrada
+  // se relanza quitando y volviendo a poner la clase. Recrear el elemento hacía que cada
+  // giro contara como un LCP nuevo ante Google.
+  const stageRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    el.classList.remove("is-in");
+    void el.offsetWidth;          // fuerza el reflujo para poder reiniciar la animación
+    el.classList.add("is-in");
+  }, [idx]);
+
   // Temporizador reiniciable: al cambiar idx (auto o manual) reinicia la cuenta.
   React.useEffect(() => {
     if (total < 2 || !ready) return;
@@ -141,7 +153,7 @@ function Hero() {
           </div>
         </div>
         <div className="ehero-media">
-          <a href={"/producto/" + p.id} className="ehero-stage" key={"m" + idx} aria-label={p.name}>
+          <a href={"/producto/" + p.id} className="ehero-stage" ref={stageRef} aria-label={p.name}>
             <ProdImg image={p.image} label="producto destacado" hue={p.hue} tub={true}
               priority={true} onLoad={() => setReady(true)} onError={() => setReady(true)} />
           </a>
