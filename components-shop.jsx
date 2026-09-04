@@ -219,8 +219,10 @@ function ProductCard({ p, onAdd, onQuick, fav, toggleFav }) {
     <article className={"pcard" + (out ? " is-out" : "")} onClick={go} style={{ cursor: "pointer" }}>
       <div className="pcard-vis">
         {out ? <span className="pcard-out">Agotado</span> : p.badge && <span className="pcard-badge">{p.badge}</span>}
-        <button className={"pcard-fav" + (fav ? " on" : "")}
-          onClick={(e) => { e.stopPropagation(); toggleFav(p.id); }} aria-label="Favorito">
+        <button type="button" className={"pcard-fav" + (fav ? " on" : "")}
+          onClick={(e) => { e.stopPropagation(); toggleFav(p.id); }}
+          aria-pressed={fav}
+          aria-label={(fav ? "Quitar de favoritos: " : "Añadir a favoritos: ") + p.name}>
           <Icon name="heart" size={17} fill={fav} stroke={fav ? 0 : 2} />
         </button>
         <a href={"/producto/" + p.id} className="pcard-link" aria-label={p.name} onClick={(e) => e.stopPropagation()}>

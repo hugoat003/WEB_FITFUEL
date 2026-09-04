@@ -114,9 +114,14 @@ function MobileMenu({ open, onClose, route, query, setQuery, user, cartCount, on
             inalcanzables mientras el menú está abierto. */}
         <div className="ff-mobile-menu-foot">
           {user ? (
-            <a href="/cuenta" onClick={onClose}>
-              <Icon name="user" size={17} /><span>Mi cuenta</span>
-            </a>
+            <>
+              <a href="/cuenta" onClick={onClose}>
+                <Icon name="user" size={17} /><span>Mi cuenta</span>
+              </a>
+              <button type="button" onClick={() => { onClose(); sb.auth.signOut(); navigate("/"); }}>
+                <Icon name="back" size={17} /><span>Cerrar sesión</span>
+              </button>
+            </>
           ) : (
             <button type="button" onClick={() => { onClose(); onAuthOpen && onAuthOpen(); }}>
               <Icon name="user" size={17} /><span>Iniciar sesión</span>

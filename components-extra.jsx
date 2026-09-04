@@ -52,9 +52,9 @@ function Testimonials({ compact = false }) {
   const [dbReviews, setDbReviews] = React.useState([]);
   React.useEffect(() => {
     let alive = true;
-    sb.from("reviews").select("nombre,lugar,texto,hue").eq("published", true)
+    sb.from("reviews").select("nombre,lugar,texto,hue,rating").eq("published", true)
       .order("created_at", { ascending: false }).limit(compact ? 6 : 60)
-      .then(({ data }) => { if (alive && data) setDbReviews(data.map((r) => ({ name: r.nombre, tag: r.lugar, quote: r.texto, hue: r.hue }))); });
+      .then(({ data }) => { if (alive && data) setDbReviews(data.map((r) => ({ name: r.nombre, tag: r.lugar, quote: r.texto, hue: r.hue, rating: r.rating }))); });
     return () => { alive = false; };
   }, [compact]);
   const published = [...dbReviews, ...FF.TESTIMONIALS.filter((t) => t._published)];
@@ -221,6 +221,7 @@ const FOOT_COLS = [
     { label: "Devoluciones", to: "/ayuda/devoluciones" },
     { label: "Contacto", to: "/contacto" },
     { label: "Preguntas frecuentes", to: "/ayuda/faq" },
+    { label: "Reseñas", to: "/resenas" },
   ] },
   { h: "FITFUEL", links: [
     { label: "Sobre nosotros", to: "/nosotros" },

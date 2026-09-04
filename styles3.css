@@ -282,6 +282,17 @@ a.contact-row:hover { background: var(--bg-2); }
 }
 
 @media (max-width: 560px) {
+  /* La etiqueta y el corazón se anclaban los dos arriba, con tamaño fijo, mientras la
+     tarjeta encogía de 285 px a 159 px: a 390 px se solapaban 12 de las 13 etiquetas y el
+     corazón caía encima del texto. La etiqueta baja al pie de la foto, donde dispone del
+     ancho completo, y el corazón se queda solo arriba a la derecha. */
+  .pcard-badge, .pcard-out {
+    top: auto; bottom: 12px; left: 12px; right: auto;
+    max-width: calc(100% - 24px);
+    font-size: 9px; letter-spacing: .06em; padding: 5px 9px; line-height: 1.35;
+  }
+  .pcard-fav { top: 10px; right: 10px; width: 32px; height: 32px; }
+
   .ff-wrap { padding: 0 16px; }
   .section { padding: 48px 0; }
   .page { padding-top: 18px; }

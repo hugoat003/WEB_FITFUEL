@@ -714,9 +714,10 @@ function ReviewsPage({ ctx }) {
   const [dbReviews, setDbReviews] = React.useState([]);
   React.useEffect(() => {
     let alive = true;
-    sb.from("reviews").select("nombre,lugar,texto,hue").eq("published", true)
+    // `rating` se guardaba pero no se leía, así que todas salían con 5 estrellas.
+    sb.from("reviews").select("nombre,lugar,texto,hue,rating").eq("published", true)
       .order("created_at", { ascending: false }).limit(60)
-      .then(({ data }) => { if (alive && data) setDbReviews(data.map((r) => ({ name: r.nombre, tag: r.lugar, quote: r.texto, hue: r.hue }))); });
+      .then(({ data }) => { if (alive && data) setDbReviews(data.map((r) => ({ name: r.nombre, tag: r.lugar, quote: r.texto, hue: r.hue, rating: r.rating }))); });
     return () => { alive = false; };
   }, []);
   const published = [...dbReviews, ...FF.TESTIMONIALS.filter((t) => t._published)];
@@ -730,9 +731,10 @@ function ReviewsPage({ ctx }) {
           <div className="tgrid">
             {published.map((t, i) => (
               <article className="tcard" key={i}>
-                <div className="stars">
+                <div className="stars" aria-label={`${t.rating || 5} de 5 estrellas`}>
                   {[...Array(5)].map((_, s) => (
-                    <Icon key={s} name="star" size={16} fill={true} stroke={0} style={{ color: "var(--accent)" }} />
+                    <Icon key={s} name="star" size={16} fill={s < (t.rating || 5)} stroke={s < (t.rating || 5) ? 0 : 1.5}
+                      style={{ color: s < (t.rating || 5) ? "var(--accent)" : "var(--text-dim)" }} />
                   ))}
                 </div>
                 <p className="quote">"{t.quote}"</p>
@@ -1526,6 +1528,12 @@ function AccountPage({ ctx, route }) {
               <a href="/cuenta/pedidos" className={sub === "pedidos" ? "on" : ""}><Icon name="package" size={15} /> Mis pedidos <span className="acnt-badge">{orders.length}</span></a>
               <a href="/cuenta/favoritos" className={sub === "favoritos" ? "on" : ""}><Icon name="heart" size={15} /> Favoritos <span className="acnt-badge">{ctx.favs.size}</span></a>
             </nav>
+            {/* Cerrar sesión solo existía en el menú del avatar de la cabecera, que no está
+                en la ficha de producto. Quien llegaba aquí desde el menú móvil no tenía salida. */}
+            <button className="btn btn-ghost btn-block btn-sm" style={{ marginTop: 12 }}
+              onClick={async () => { await sb.auth.signOut(); navigate("/"); }}>
+              Cerrar sesión
+            </button>
           </aside>
 
           {/* Contenido */}

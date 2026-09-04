@@ -187,8 +187,11 @@
 .pcard-quick {
   position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 3;
   opacity: 0; transform: translateY(10px); transition: .25s var(--ease);
+  /* Sin esto seguía capturando toques estando invisible: en móvil, donde nunca hay hover,
+     había un botón fantasma sobre la parte baja de cada foto que se comía el toque. */
+  pointer-events: none;
 }
-.pcard:hover .pcard-quick { opacity: 1; transform: none; }
+.pcard:hover .pcard-quick { opacity: 1; transform: none; pointer-events: auto; }
 .pcard-body { padding: 4px 18px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .pcard-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .pcard-cat { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; color: var(--text-dim); text-transform: uppercase; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
