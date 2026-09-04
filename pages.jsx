@@ -285,6 +285,11 @@ function ProductPage({ ctx, route }) {
             </div>
           </div>
 
+          {/* La misma cinta del resto del sitio, pero invertida: aquí cae sobre el hero
+              crema, y hueso sobre crema da un contraste de 1,15:1 (invisible). El color
+              lo pone .dp-marquee en pdp.css. */}
+          <div className="dp-marquee"><Marquee /></div>
+
           <div className="dp-crumb dp-mono">
             <a href="/">Inicio</a> &nbsp;·&nbsp; <a href="/catalogo">Catálogo</a> &nbsp;·&nbsp; <b>{p.name}</b>
           </div>

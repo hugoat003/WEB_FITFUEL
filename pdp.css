@@ -29,6 +29,16 @@
 .dp-cart { position:relative; background:transparent; border:none; color:#16130F; cursor:pointer; padding:0; }
 .dp-cart-badge { position:absolute; top:-7px; right:-8px; min-width:16px; height:16px; background:#16130F; color:#D4D1C8; border-radius:20px; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px; }
 
+/* ---------- CINTA ----------
+   La del sitio es hueso (#EAE7DF) sobre carbón y funciona porque separa la cabecera crema
+   del cuerpo oscuro. Aquí cae dentro del hero crema (#D4D1C8): hueso sobre crema da 1,15:1,
+   o sea invisible. Se invierte a carbón con letra crema, que es exactamente el mismo gesto
+   que ya usa el contador del carrito de esta página (.dp-cart-badge). Contraste 13:1.
+   Los márgenes negativos igualan el padding lateral del hero para que vaya de lado a lado. */
+.dp-marquee { margin:20px calc(-1 * clamp(18px,3vw,40px)) 0; }
+.dp-marquee .marquee { background:#16130F; border-bottom:none; }
+.dp-marquee .marquee-item { color:#D4D1C8; }
+
 .dp-crumb { margin-top:26px; font-size:11px; color:#6B665C; }
 .dp-crumb a:hover { color:#16130F; }
 .dp-crumb b { color:#16130F; font-weight:400; }
