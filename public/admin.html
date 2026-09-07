@@ -1698,6 +1698,9 @@ function openProduct(id) {
   }));
   if (!presData.length) presData = [{ flavor:'', size:'', price: p ? p.price : 0, cost: 0, stock: null, images: [], facts: [['',''],['','']] }];
   document.getElementById('panel-title').textContent = p ? 'Editar producto' : 'Nuevo producto';
+  // La descripción larga se guarda como lista de párrafos; en el formulario se edita
+  // como texto con una línea en blanco entre párrafos, igual que el cuerpo del blog.
+  const descText = p && Array.isArray(p.description) ? p.description.join('\n\n') : (p?.description || '');
   const cats = D.categories.filter(c => c.id !== 'all');
   const goals = D.goals;
   document.getElementById('panel-body').innerHTML = `
@@ -1733,6 +1736,15 @@ function openProduct(id) {
     </div>
     <div class="fg"><label class="lbl">Descripción corta</label>
       <textarea id="f-blurb">${esc(p?.blurb||'')}</textarea>
+      <p style="font-size:12px;color:var(--dim);margin-top:4px">Una o dos frases. Salen en la tarjeta del catálogo y en el resultado de Google.</p>
+    </div>
+    <div class="fg"><label class="lbl">Descripción larga</label>
+      <textarea id="f-desc" rows="8" placeholder="Un párrafo por bloque.&#10;&#10;Deja una línea en blanco entre párrafo y párrafo.">${esc(descText)}</textarea>
+      <p style="font-size:12px;color:var(--dim);margin-top:4px">Aparece en la sección "Descripción" de la ficha. Separa los párrafos con una línea en blanco.</p>
+    </div>
+    <div class="fg"><label class="lbl">Advertencia (opcional)</label>
+      <textarea id="f-warning" rows="3" placeholder="Contiene leche. No apto para…">${esc(p?.warning||'')}</textarea>
+      <p style="font-size:12px;color:var(--dim);margin-top:4px">Alérgenos, estimulantes o contraindicaciones. Sale destacado bajo la descripción. Si lo dejas vacío, no se muestra nada.</p>
     </div>
     <div class="fg">
       <label class="chk-lbl" style="font-size:14px"><input type="checkbox" id="f-carousel"${p?.carousel ? ' checked' : ''} /> ⭐ Mostrar en el carrusel del inicio</label>
@@ -1786,6 +1798,11 @@ function saveProduct() {
     badge: document.getElementById('f-badge').value.trim() || null,
     hue: parseInt(document.getElementById('f-hue').value),
     blurb: document.getElementById('f-blurb').value.trim(),
+    description: (() => {
+      const t = document.getElementById('f-desc').value.trim();
+      return t ? t.split(/\n\s*\n/).map(x => x.trim()).filter(Boolean) : [];
+    })(),
+    warning: document.getElementById('f-warning').value.trim() || null,
     carousel: document.getElementById('f-carousel').checked,
     // Si acaba de entrar al carrusel, se coloca al final; si ya estaba, conserva su sitio.
     carouselOrder: document.getElementById('f-carousel').checked
