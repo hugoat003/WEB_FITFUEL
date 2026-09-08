@@ -42,5 +42,13 @@
 # El catálogo local y el panel deben revalidarse siempre (cambian sin cambiar de nombre).
 /data.js
   Cache-Control: public, max-age=0, must-revalidate
+# Cloudflare sirve el panel en /admin (redirige /admin.html con un 308), así que la regla
+# tenía que existir para las dos rutas: escrita solo para /admin.html, la real se quedaba con
+# la caché por defecto y sin ninguna señal para buscadores.
 /admin.html
   Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/admin
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
