@@ -277,6 +277,8 @@ export function prerender() {
         description: "Opiniones reales de personas que ya compraron suplementos en FITFUEL." }, { priority: 0.5 });
       add("/contacto", { title: "Contacto — FITFUEL",
         description: "Escríbenos y te asesoramos sin compromiso sobre qué suplemento te conviene." }, { priority: 0.5 });
+      add("/mayoristas", { title: "Compra por volumen — Mayoristas FITFUEL",
+        description: "Gimnasios, tiendas y entrenadores: suplementos originales bajo encargo, con precio de mayoreo y envío a toda Guatemala." }, { priority: 0.5 });
 
       // ── Ayuda e institucionales (títulos leídos de pages.jsx)
       const helpSlugs = ["envios", "devoluciones", "faq"];

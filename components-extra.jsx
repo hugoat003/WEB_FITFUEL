@@ -253,7 +253,8 @@ const FOOT_COLS = [
     { label: "Sobre nosotros", to: "/nosotros" },
     { label: "Calidad", to: "/calidad" },
     { label: "Blog", to: "/blog" },
-    // { label: "Afiliados", to: "/afiliados" }, // pendiente de activar
+    { label: "Mayoristas", to: "/mayoristas" },
+    { label: "Afiliados", to: "/afiliados" },
   ] },
 ];
 

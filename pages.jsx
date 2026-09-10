@@ -537,6 +537,7 @@ function ProductPage({ ctx, route }) {
                   <a href="/nosotros">Sobre nosotros</a>
                   <a href="/calidad">Calidad</a>
                   <a href="/blog">Cómo se toma</a>
+                  <a href="/mayoristas">Mayoristas</a>
                 </div>
               </div>
             </div>
@@ -880,6 +881,142 @@ function ContactPage({ ctx }) {
               </>
             )}
           </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- MAYORISTAS ---------------- */
+// Página B2B. No vende: recoge la solicitud y la manda al correo por web3forms, igual que
+// contacto. A diferencia de contacto, esta sí lleva límite de intentos: el formulario es
+// público y no hay nada más que frene un envío repetido.
+function WholesalePage({ ctx }) {
+  const c = FF.CONTACT || {};
+  const [sent, setSent] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
+  const [err, setErr] = React.useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (sending) return;
+    const f = new FormData(e.target);
+    const g = (k) => (f.get(k) || "").toString().trim();
+
+    const rl = rateLimit("ff_rl_mayoreo", 4, 30 * 60 * 1000);   // 4 solicitudes / 30 min
+    if (!rl.ok) { setErr(`Ya enviaste varias solicitudes. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); return; }
+
+    setSending(true); setErr("");
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_KEY,
+          subject: `Mayoristas FITFUEL — ${g("negocio") || g("nombre")}`,
+          name: g("nombre"),
+          email: g("correo"),
+          phone: g("telefono"),
+          negocio: g("negocio"),
+          ubicacion: g("ubicacion"),
+          producto: g("producto"),
+          volumen: g("volumen"),
+          message: g("mensaje") || "(sin detalle adicional)",
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Error al enviar");
+      setSent(true);
+      ctx.toast("Solicitud enviada ✦ Te cotizamos pronto");
+    } catch {
+      setErr("No pudimos enviar la solicitud. Intenta de nuevo o escríbenos al correo.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <section className="page">
+      <div className="ff-wrap">
+        <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Mayoristas" }]} />
+        <PageHead eyebrow="Mayoristas" title="Compra por volumen"
+          sub="Gimnasios, tiendas y entrenadores: te cotizamos por encargo, con precio de mayoreo." />
+
+        <div className="contact-grid">
+          <div className="contact-info">
+            <div className="contact-row">
+              <span className="ci-ic"><Icon name="package" size={20} /></span>
+              <div><b>Producto bajo encargo</b><span>Pedimos a distribuidor lo que necesitas, en la cantidad que necesitas.</span></div>
+            </div>
+            <div className="contact-row">
+              <span className="ci-ic"><Icon name="tag" size={20} /></span>
+              <div><b>50% de anticipo</b><span>Se confirma con la mitad por adelantado. El resto, al entregar.</span></div>
+            </div>
+            <div className="contact-row">
+              <span className="ci-ic"><Icon name="truck" size={20} /></span>
+              <div><b>Envío a toda Guatemala</b><span>Coordinamos entrega en los 22 departamentos.</span></div>
+            </div>
+            <a className="contact-row" href={"mailto:" + c.email}>
+              <span className="ci-ic"><Icon name="mail" size={20} /></span>
+              <div><b>¿Prefieres escribir?</b><span>{c.email}</span></div>
+            </a>
+          </div>
+
+          <form className="contact-form" onSubmit={submit}>
+            {sent ? (
+              <div className="form-done">
+                <span className="tk"><Icon name="check" size={22} stroke={3} /></span>
+                <h3>Solicitud enviada</h3>
+                <p>Revisamos disponibilidad con el distribuidor y te enviamos la cotización en menos de 48 horas hábiles.</p>
+                <button type="button" className="btn btn-ghost" onClick={() => setSent(false)}>Enviar otra</button>
+              </div>
+            ) : (
+              <>
+                <label>Negocio<input required name="negocio" type="text" placeholder="Gimnasio, tienda o tu nombre" /></label>
+                <label>Persona de contacto<input required name="nombre" type="text" placeholder="Tu nombre" /></label>
+                <label>Correo<input required name="correo" type="email" placeholder="tucorreo@email.com" /></label>
+                <label>Teléfono<input required name="telefono" type="tel" placeholder="+502 0000 0000" /></label>
+                <label>Ubicación<input name="ubicacion" type="text" placeholder="Departamento o municipio" /></label>
+                <label>Qué te interesa<input required name="producto" type="text" placeholder="Marca, producto o categoría" /></label>
+                <label>Volumen aproximado
+                  <select name="volumen" defaultValue="6 a 12 unidades">
+                    <option>Menos de 6 unidades</option>
+                    <option>6 a 12 unidades</option>
+                    <option>12 a 30 unidades</option>
+                    <option>Más de 30 unidades</option>
+                    <option>Aún no lo sé</option>
+                  </select>
+                </label>
+                <label>Detalles<textarea name="mensaje" rows="3" placeholder="Sabores, presentaciones, fecha en que lo necesitas…" /></label>
+                {err && <p style={{ color: "var(--danger, #E5484D)", fontSize: 14, margin: 0 }}>{err}</p>}
+                <button className="btn btn-primary btn-block btn-lg" type="submit" disabled={sending}>
+                  {sending ? "Enviando…" : <>Pedir cotización <Icon name="arrow" size={18} /></>}
+                </button>
+                <p style={{ fontSize: 13, color: "var(--text-dim)", margin: 0, textAlign: "center" }}>
+                  Cotizar no compromete a nada. Los precios dependen de la marca y la cantidad.
+                </p>
+              </>
+            )}
+          </form>
+        </div>
+
+        <div className="content-blocks" style={{ marginTop: 34 }}>
+          <div className="cblock">
+            <h3>Cómo funciona el encargo</h3>
+            <p>Nos dices qué necesitas y en qué cantidad. Confirmamos disponibilidad y precio con el distribuidor autorizado y te pasamos la cotización con el tiempo de entrega. Si te sirve, se confirma con el 50% de anticipo y pedimos el producto.</p>
+          </div>
+          <div className="cblock">
+            <h3>Por qué pedimos anticipo</h3>
+            <p>El producto se trae específicamente para tu pedido, no sale de un inventario que ya tengamos. El anticipo es lo que nos permite encargarlo sin arriesgar la operación, y es la razón de que puedas conseguir marcas y presentaciones que no están en el catálogo de la tienda.</p>
+          </div>
+          <div className="cblock">
+            <h3>Qué garantizamos</h3>
+            <p>Lo mismo que en la tienda: producto original de distribuidor autorizado, sellado de fábrica, con lote y fecha de vencimiento visibles. Las certificaciones de laboratorio son las que emite cada fabricante, no FITFUEL.</p>
+          </div>
+          <div className="cblock">
+            <h3>Antes de encargar</h3>
+            <p>Al ser producto pedido a medida, aplica nuestra <a href="/ayuda/devoluciones">política de devoluciones</a>: no aceptamos cambios ni reembolsos una vez confirmado. Revisa bien marca, sabor y presentación en la cotización antes de dar el visto bueno.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1669,6 +1806,6 @@ function NotFoundPage({ msg }) {
 
 Object.assign(window, {
   Breadcrumb, PageHead, HomePage, CatalogPage, GoalsPage, BundlesPage, ProductPage, PackPage,
-  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, ContentPage, FaqItem,
+  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, WholesalePage, ContentPage, FaqItem,
   AccountPage, NotFoundPage, CONTENT_PAGES, INFO_PAGES,
 });

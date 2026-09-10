@@ -30,6 +30,7 @@ const PAGE_TITLES = {
   blog: "Blog — FITFUEL",
   resenas: "Reseñas — FITFUEL",
   contacto: "Contacto — FITFUEL",
+  mayoristas: "Compra por volumen — Mayoristas FITFUEL",
   ayuda: "Ayuda — FITFUEL",
   nosotros: "Sobre nosotros — FITFUEL",
   calidad: "Calidad — FITFUEL",
@@ -79,6 +80,7 @@ function renderPage(route, ctx) {
     case "blog": return route.parts[1] ? <BlogPostPage route={route} /> : <BlogPage />;
     case "resenas": return <ReviewsPage ctx={ctx} />;
     case "contacto": return <ContactPage ctx={ctx} />;
+    case "mayoristas": return <WholesalePage ctx={ctx} />;
     case "cuenta": return <AccountPage ctx={ctx} route={route} />;
     case "ayuda": {
       const data = CONTENT_PAGES[route.parts[1]];

@@ -172,11 +172,15 @@ a.contact-row:hover { background: var(--bg-2); }
 .contact-row span { font-size: 14px; color: var(--text-dim); }
 .contact-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 26px; display: flex; flex-direction: column; gap: 14px; }
 .contact-form label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 600; color: var(--text-dim); }
-.contact-form input, .contact-form textarea {
+.contact-form input, .contact-form textarea, .contact-form select {
   font-family: inherit; font-size: 15px; color: var(--text); background: var(--bg-2);
   border: 1px solid var(--border); border-radius: var(--r-sm); padding: 13px 15px; outline: none; transition: .18s; resize: vertical;
 }
-.contact-form input:focus, .contact-form textarea:focus { border-color: var(--accent); }
+/* El desplegable de volumen (mayoristas) es el único <select> de este formulario. Sin
+   `appearance: auto` heredaría la altura del padding y la flecha nativa se descuadra en
+   Safari; con ella, el navegador dibuja su control dentro de nuestra caja. */
+.contact-form select { appearance: auto; resize: none; }
+.contact-form input:focus, .contact-form textarea:focus, .contact-form select:focus { border-color: var(--accent); }
 .contact-form input::placeholder, .contact-form textarea::placeholder { color: var(--text-dim); }
 .form-done { text-align: center; padding: 30px 10px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .form-done .tk { width: 56px; height: 56px; border-radius: 100px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
@@ -534,7 +538,7 @@ a.contact-row:hover { background: var(--bg-2); }
   input, select, textarea,
   .checkout-form input, .checkout-form select,
   .review-form input, .review-form select, .review-form textarea,
-  .contact-form input, .contact-form textarea,
+  .contact-form input, .contact-form textarea, .contact-form select,
   .auth-form input, .co-promo-input, .ff-mobile-menu-search input {
     font-size: 16px;
   }
