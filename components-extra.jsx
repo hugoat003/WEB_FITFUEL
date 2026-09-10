@@ -254,7 +254,7 @@ const FOOT_COLS = [
     { label: "Calidad", to: "/calidad" },
     { label: "Blog", to: "/blog" },
     { label: "Mayoristas", to: "/mayoristas" },
-    { label: "Afiliados", to: "/afiliados" },
+    // { label: "Afiliados", to: "/afiliados" }, // desactivado: sin decidir si compensa
   ] },
 ];
 

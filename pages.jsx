@@ -1071,6 +1071,9 @@ const INFO_PAGES = {
       { h: "Son suplementos, no medicamentos", p: "Nuestros productos son suplementos alimenticios. No sustituyen una dieta equilibrada ni el consejo de un profesional de la salud, y no tratan ni curan ninguna enfermedad." },
     ],
   },
+  // DESACTIVADO. El programa implica pagar comisiones y está sin decidir. La ruta no existe
+  // en app.jsx ni se prerenderiza, así que /afiliados cae en la página de no encontrado. El
+  // texto se conserva aquí para poder reactivarlo sin volver a escribirlo.
   afiliados: {
     eyebrow: "FITFUEL", title: "Programa de afiliados",
     sub: "Entrenas, recomiendas, ganas.",

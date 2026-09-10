@@ -35,7 +35,6 @@ const PAGE_TITLES = {
   ayuda: "Ayuda — FITFUEL",
   nosotros: "Sobre nosotros — FITFUEL",
   calidad: "Calidad — FITFUEL",
-  afiliados: "Afiliados — FITFUEL",
   privacidad: "Aviso de privacidad — FITFUEL",
   terminos: "Términos y condiciones — FITFUEL",
   cookies: "Política de cookies — FITFUEL",
@@ -90,7 +89,6 @@ function renderPage(route, ctx) {
     }
     case "nosotros":
     case "calidad":
-    case "afiliados":
     case "privacidad":
     case "terminos":
     case "cookies": {

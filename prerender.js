@@ -289,7 +289,10 @@ export function prerender() {
           description: c ? clip(c.sub) : "Información de ayuda de FITFUEL.",
         }, { priority: 0.4 });
       });
-      ["nosotros", "calidad", "afiliados", "privacidad", "terminos", "cookies"].forEach((slug) => {
+      // "afiliados" está fuera a propósito: el programa no está activo. Su texto sigue en
+      // INFO_PAGES, así que reactivarlo es volver a poner el slug aquí, la ruta en app.jsx
+      // y el enlace en FOOT_COLS.
+      ["nosotros", "calidad", "privacidad", "terminos", "cookies"].forEach((slug) => {
         const c = content[slug];
         add("/" + slug, {
           title: (c ? c.title : slug) + " — FITFUEL",
