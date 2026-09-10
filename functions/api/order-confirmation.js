@@ -88,10 +88,15 @@ function totalRow(label, val, strong) {
 function emailShell({ accent, banner, emoji, greeting, intro, order, date, footerNote }) {
   const o = order || {};
   const shipping = Number(o.shipping) || 0;
+  // `discount_pct` es un porcentaje entero, igual que en el checkout. Antes el correo
+  // imprimía la línea de descuento con un guion porque el dato no llegaba hasta aquí, así
+  // que Subtotal + Envío no cuadraba con el Total.
+  const pct = Number(o.discount_pct) || 0;
+  const desc = pct ? Math.round((Number(o.subtotal) || 0) * pct) / 100 : 0;
   const totals =
     (o.subtotal != null ? totalRow("Subtotal", q(o.subtotal)) : "") +
+    (o.discount_code ? totalRow(`Descuento (${esc(o.discount_code)})`, desc ? "−" + q(desc) : "—") : "") +
     totalRow("Envío", shipping === 0 ? "Gratis" : q(shipping)) +
-    (o.discount_code ? totalRow(`Descuento (${esc(o.discount_code)})`, "—") : "") +
     (o.total != null ? totalRow("Total", q(o.total), true) : "");
 
   const entrega = o.direccion

@@ -1223,6 +1223,170 @@ function PackPage({ ctx, route }) {
   );
 }
 
+/* ---------------- GRACIAS (recibo) ---------------- */
+// El recibo vivía como estado interno del checkout: al refrescar o navegar desaparecía, y no
+// había forma de recuperarlo porque el carrito ya estaba vacío. Ahora tiene URL propia.
+//
+// LÍMITE CONOCIDO: la tabla `orders` en Supabase solo la puede leer un administrador
+// (`orders_select_admin … using (public.is_admin())`) y no existe RPC para consultar un
+// pedido propio. Así que la única fuente que tiene el navegador es la copia local
+// `ff_orders`. Consecuencia: el recibo sobrevive al refresco y a navegar, pero solo en el
+// navegador donde se hizo la compra. Desde otro dispositivo mandamos al correo de
+// confirmación, que sí llega a cualquier parte.
+function findLocalOrder(id) {
+  if (window.__ffLastOrder && window.__ffLastOrder.id === id) return window.__ffLastOrder;
+  try {
+    const list = JSON.parse(localStorage.getItem("ff_orders") || "[]");
+    return list.find((o) => o && o.id === id) || null;
+  } catch { return null; }
+}
+
+// El descuento se guarda como porcentaje entero (`discount_pct`), igual que en el checkout.
+function discountOf(o) {
+  const pct = Number(o.discount_pct) || 0;
+  if (!pct) return 0;
+  return Math.round((Number(o.subtotal) || 0) * pct) / 100;
+}
+
+function OrderReceipt({ o }) {
+  const desc = discountOf(o);
+  const fecha = (() => {
+    if (!o.date) return "";
+    const d = new Date(o.date);
+    return isNaN(d) ? String(o.date) : d.toLocaleString("es-GT");
+  })();
+  return (
+    <div className="receipt" id="receipt-print">
+      <div className="receipt-hd">
+        <div className="receipt-logo">FIT<b>FUEL</b></div>
+        <div className="receipt-id"><span>Pedido</span><b>#{o.id}</b></div>
+      </div>
+      <div className="receipt-date">{fecha}</div>
+
+      <div className="receipt-section">
+        <div className="receipt-label">Productos</div>
+        {(o.items || []).map((it, i) => (
+          <div className="receipt-row" key={i}>
+            <span>{it.qty}× {it.name} {it.flavor && <span style={{ color: "var(--text-dim)", fontSize: 13 }}>({it.flavor})</span>}</span>
+            <b>{money(it.price * it.qty)}</b>
+          </div>
+        ))}
+      </div>
+
+      <div className="receipt-totals">
+        <div className="receipt-row"><span>Subtotal</span><span>{money(o.subtotal)}</span></div>
+        {/* Sin esta línea el recibo no cuadraba: con código aplicado imprimía Subtotal +
+            Envío, que no suman el Total. */}
+        {desc > 0 && (
+          <div className="receipt-row">
+            <span>Descuento {o.discount_code ? <span style={{ color: "var(--text-dim)", fontSize: 13 }}>({o.discount_code})</span> : null}</span>
+            <span style={{ color: "var(--ok)" }}>−{money(desc)}</span>
+          </div>
+        )}
+        <div className="receipt-row">
+          <span>Envío</span>
+          <span style={{ color: o.shipping === 0 ? "var(--ok)" : undefined }}>
+            {o.shipping === 0 ? "Gratis ✦" : money(o.shipping)}
+          </span>
+        </div>
+        <div className="receipt-row receipt-total-line"><b>Total</b><b>{money(o.total)}</b></div>
+      </div>
+
+      <div className="receipt-section">
+        <div className="receipt-label">Datos de entrega</div>
+        <div className="receipt-info">{o.nombre}</div>
+        <div className="receipt-info">{o.direccion}, {o.municipio}</div>
+        <div className="receipt-info">{o.departamento}</div>
+        {o.referencia && <div className="receipt-info">Ref: {o.referencia}</div>}
+        <div className="receipt-info">Tel: {o.telefono}</div>
+        {o.correo && <div className="receipt-info">{o.correo}</div>}
+        <div className="receipt-info" style={{ marginTop: 6 }}>Pago: <b>{o.pago}</b></div>
+      </div>
+
+      <div className="receipt-footer">FITFUEL Guatemala · fitfuelgt.com</div>
+    </div>
+  );
+}
+
+function ThankYouPage({ ctx, route }) {
+  const id = route.parts[1] || "";
+  const [o, setO] = React.useState(() => (id ? findLocalOrder(id) : null));
+  React.useEffect(() => { window.scrollTo(0, 0); }, [id]);
+  React.useEffect(() => { setO(id ? findLocalOrder(id) : null); }, [id]);
+
+  if (!id || !o) {
+    return (
+      <section className="page">
+        <div className="ff-wrap ff-narrow">
+          <div className="cart-empty" style={{ padding: "70px 20px" }}>
+            <Icon name="package" size={40} />
+            <div>
+              No encontramos el pedido {id ? <b>#{id}</b> : "que buscas"} en este navegador.<br />
+              Guardamos el recibo solo en el dispositivo donde se hizo la compra. Si compraste desde otro
+              teléfono o borraste los datos del navegador, busca el correo de confirmación: ahí va el mismo resumen.
+            </div>
+            <a className="btn btn-primary" href="/contacto">Escríbenos <Icon name="arrow" size={18} /></a>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const mailBody = encodeURIComponent(
+    `Hola ${o.nombre},\n\nGracias por tu pedido en FITFUEL. Aquí tienes el resumen:\n\n` +
+    `Pedido: #${o.id}\n\nPRODUCTOS:\n` +
+    (o.items || []).map((it) => `  ${it.qty}x ${it.name} — ${it.flavor}  ${money(it.price * it.qty)}`).join("\n") +
+    `\n\nSubtotal: ${money(o.subtotal)}\n` +
+    (discountOf(o) > 0 ? `Descuento${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(discountOf(o))}\n` : "") +
+    `Envío: ${o.shipping === 0 ? "Gratis" : money(o.shipping)}\nTotal: ${money(o.total)}\n\n` +
+    `DATOS DE ENTREGA:\n${o.nombre}\n${o.direccion}, ${o.municipio}, ${o.departamento}\nTel: ${o.telefono}\nPago: ${o.pago}\n\n` +
+    `Nos contactaremos contigo para confirmar. ¡Gracias por elegir FITFUEL!\n\nEquipo FITFUEL Guatemala`
+  );
+  const mailHref = `mailto:${o.correo}?subject=${encodeURIComponent("Tu pedido FITFUEL #" + o.id)}&body=${mailBody}`;
+
+  return (
+    <section className="page">
+      <div className="ff-wrap ff-narrow">
+        <div className="order-done">
+          <span className="tk"><Icon name="check" size={30} stroke={3} /></span>
+          <h1 className="display">¡Gracias por tu pedido!</h1>
+          <p style={{ color: "var(--text-dim)", marginBottom: 8 }}>
+            Ya lo recibimos. Te escribimos en menos de 24 horas hábiles para confirmar el pago y coordinar la entrega,
+            que toma de 2 a 3 días hábiles a cualquier punto del país.
+          </p>
+          <p style={{ color: "var(--text-dim)", marginBottom: 24, fontSize: 14 }}>
+            Te enviamos este mismo resumen a <b>{o.correo}</b>. Guarda esta página o imprímela: aquí queda tu recibo.
+          </p>
+
+          <OrderReceipt o={o} />
+
+          <div className="order-actions" style={{ marginTop: 20 }}>
+            <button className="btn btn-accent btn-lg" onClick={() => window.print()}>
+              <Icon name="shield" size={18} /> Imprimir / Guardar PDF
+            </button>
+            <a className="btn btn-ghost btn-lg" href={mailHref}>Enviar a mi correo</a>
+          </div>
+
+          {/* Invitación a reseñar. El formulario de /resenas verifica el correo contra los
+              pedidos reales, así que a partir de ahora este cliente ya pasa el filtro. */}
+          <div className="gracias-review">
+            <div className="stars" aria-hidden="true">
+              {[...Array(5)].map((_, s) => <Icon key={s} name="star" size={17} fill={true} stroke={0} style={{ color: "var(--accent)" }} />)}
+            </div>
+            <b>Cuando lo pruebes, cuéntanos</b>
+            <p>Tu reseña ayuda a que otros elijan bien. Solo necesitas el correo con el que compraste.</p>
+            <a className="btn btn-ghost" href="/resenas">Dejar una reseña <Icon name="arrow" size={18} /></a>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <a className="btn btn-primary btn-lg" href="/catalogo">Seguir comprando <Icon name="arrow" size={18} /></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---------------- CHECKOUT ---------------- */
 const GT_DEPTS = [
   "Guatemala", "Sacatepéquez", "Chimaltenango", "Escuintla", "Quetzaltenango",
@@ -1238,7 +1402,6 @@ function CheckoutPage({ ctx }) {
   const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
   const freeShip = subtotal >= (FF.FREE_SHIP || 400);
   const shipping = freeShip ? 0 : SHIP_COST();
-  const [order, setOrder] = React.useState(null);
   const [sending, setSending] = React.useState(false);
   const [promoInput, setPromoInput] = React.useState("");
   const [promo, setPromo] = React.useState(null);
@@ -1318,7 +1481,9 @@ function CheckoutPage({ ctx }) {
     const lines = items.map((it) => `${it.qty}x ${it.name} (${it.flavor}) — ${money(it.price * it.qty)}`);
     const detalle =
       lines.join("\n") +
-      `\n\nSubtotal: ${money(subtotal)}\nEnvío: ${shipping === 0 ? "Gratis" : money(shipping)}\nTotal: ${money(total)}\n\n` +
+      `\n\nSubtotal: ${money(subtotal)}\n` +
+      (discountAmt > 0 ? `Descuento (${promo.code}): -${money(discountAmt)}\n` : "") +
+      `Envío: ${shipping === 0 ? "Gratis" : money(shipping)}\nTotal: ${money(total)}\n\n` +
       `Cliente: ${g("nombre")}\nTel: ${g("telefono")}\nCorreo: ${g("correo")}\n` +
       `Dirección: ${g("direccion")}, ${g("municipio")}, ${g("departamento")}\n` +
       (g("referencia") ? `Referencia: ${g("referencia")}\n` : "") +
@@ -1375,13 +1540,30 @@ function CheckoutPage({ ctx }) {
       // error, reintentaría, y acabaría con dos pedidos y el stock descontado dos veces.
       const orderData = {
         id, total, count, subtotal, shipping, date: new Date().toLocaleString("es-GT"),
+        discount_code: promo?.code || null, discount_pct: promo?.discount_pct || 0,
         nombre: g("nombre"), telefono: g("telefono"), correo: g("correo"),
         direccion: g("direccion"), municipio: g("municipio"), departamento: g("departamento"),
         referencia: g("referencia"), pago: g("pago"),
         items: items.map((it) => ({ name: it.name, flavor: it.flavor, qty: it.qty, price: it.price })),
       };
+
+      // Copia local del pedido. Sube antes de navegar porque es de donde /gracias/:id lee el
+      // recibo. `__ffLastOrder` es el plan B para cuando localStorage no está disponible
+      // (modo privado, cuota llena): sin él, el cliente que acaba de pagar vería un "no
+      // encontramos ese pedido".
+      const receipt = { ...orderPayload, date: new Date().toISOString() };
+      window.__ffLastOrder = receipt;
+      try {
+        const orders = JSON.parse(localStorage.getItem("ff_orders") || "[]");
+        orders.unshift(receipt);
+        // El respaldo crecía sin límite y localStorage se llena; con 50 sobra.
+        localStorage.setItem("ff_orders", JSON.stringify(orders.slice(0, 50)));
+      } catch (_) {}
+
+      // Navegar primero y vaciar después: al revés, el checkout se repinta un instante con
+      // el carrito ya vacío y enseña "Tu carrito está vacío" justo tras confirmar la compra.
+      navigate("/gracias/" + id);
       ctx.clearCart();
-      setOrder(orderData);
       ctx.toast("¡Pedido recibido! ✦");
 
       // ── 3) Efectos secundarios: ninguno bloquea ni propaga su error ──────────
@@ -1396,13 +1578,6 @@ function CheckoutPage({ ctx }) {
           departamento: g("departamento"), referencia: g("referencia"),
         }).then(() => {}, () => {});
       }
-
-      // Copia local del pedido (respaldo visible en el panel sin conexión)
-      try {
-        const orders = JSON.parse(localStorage.getItem("ff_orders") || "[]");
-        orders.unshift({ ...orderPayload, date: new Date().toISOString() });
-        localStorage.setItem("ff_orders", JSON.stringify(orders));
-      } catch (_) {}
 
       // Decrementar stock en la caché local: por presentación (vf) si existe.
       try {
@@ -1431,97 +1606,6 @@ function CheckoutPage({ ctx }) {
       setSending(false);
     }
   };
-
-  if (order) {
-    const mailBody = encodeURIComponent(
-      `Hola ${order.nombre},\n\nGracias por tu pedido en FITFUEL. Aquí tienes el resumen:\n\n` +
-      `Pedido: #${order.id}\nFecha: ${order.date}\n\n` +
-      `PRODUCTOS:\n` +
-      order.items.map((it) => `  ${it.qty}x ${it.name} — ${it.flavor}  ${money(it.price * it.qty)}`).join("\n") +
-      `\n\nSubtotal: ${money(order.subtotal)}\nEnvío: ${order.shipping === 0 ? "Gratis" : money(order.shipping)}\nTotal: ${money(order.total)}\n\n` +
-      `DATOS DE ENTREGA:\n${order.nombre}\n${order.direccion}, ${order.municipio}, ${order.departamento}\nTel: ${order.telefono}\nPago: ${order.pago}\n\n` +
-      `Nos contactaremos contigo para confirmar. ¡Gracias por elegir FITFUEL!\n\nEquipo FITFUEL Guatemala`
-    );
-    const mailSubject = encodeURIComponent(`Tu pedido FITFUEL #${order.id}`);
-    const mailHref = `mailto:${order.correo}?subject=${mailSubject}&body=${mailBody}`;
-
-    return (
-      <section className="page">
-        <div className="ff-wrap ff-narrow">
-          <div className="order-done">
-            <span className="tk"><Icon name="check" size={30} stroke={3} /></span>
-            <h1 className="display">¡Gracias por tu pedido!</h1>
-            <p style={{ color: "var(--text-dim)", marginBottom: 24 }}>
-              Recibirás contacto de nuestro equipo pronto para confirmar el pago y coordinar la entrega.
-            </p>
-
-            {/* Recibo */}
-            <div className="receipt" id="receipt-print">
-              <div className="receipt-hd">
-                <div className="receipt-logo">FIT<b>FUEL</b></div>
-                <div className="receipt-id">
-                  <span>Pedido</span>
-                  <b>#{order.id}</b>
-                </div>
-              </div>
-              <div className="receipt-date">{order.date}</div>
-
-              <div className="receipt-section">
-                <div className="receipt-label">Productos</div>
-                {order.items.map((it, i) => (
-                  <div className="receipt-row" key={i}>
-                    <span>{it.qty}× {it.name} <span style={{ color: "var(--text-dim)", fontSize: 13 }}>({it.flavor})</span></span>
-                    <b>{money(it.price * it.qty)}</b>
-                  </div>
-                ))}
-              </div>
-
-              <div className="receipt-totals">
-                <div className="receipt-row">
-                  <span>Subtotal</span><span>{money(order.subtotal)}</span>
-                </div>
-                <div className="receipt-row">
-                  <span>Envío</span>
-                  <span style={{ color: order.shipping === 0 ? "var(--ok)" : undefined }}>
-                    {order.shipping === 0 ? "Gratis ✦" : money(order.shipping)}
-                  </span>
-                </div>
-                <div className="receipt-row receipt-total-line">
-                  <b>Total</b><b>{money(order.total)}</b>
-                </div>
-              </div>
-
-              <div className="receipt-section">
-                <div className="receipt-label">Datos de entrega</div>
-                <div className="receipt-info">{order.nombre}</div>
-                <div className="receipt-info">{order.direccion}, {order.municipio}</div>
-                <div className="receipt-info">{order.departamento}</div>
-                <div className="receipt-info">Tel: {order.telefono}</div>
-                {order.correo && <div className="receipt-info">{order.correo}</div>}
-                <div className="receipt-info" style={{ marginTop: 6 }}>Pago: <b>{order.pago}</b></div>
-              </div>
-
-              <div className="receipt-footer">
-                FITFUEL Guatemala · fitfuelgt.com
-              </div>
-            </div>
-
-            <div className="order-actions" style={{ marginTop: 20 }}>
-              <button className="btn btn-accent btn-lg" onClick={() => window.print()}>
-                <Icon name="shield" size={18} /> Imprimir / Guardar PDF
-              </button>
-              <a className="btn btn-ghost btn-lg" href={mailHref}>
-                Enviar a mi correo
-              </a>
-            </div>
-            <div style={{ textAlign: "center", marginTop: 16 }}>
-              <a className="btn btn-primary btn-lg" href="/catalogo">Seguir comprando <Icon name="arrow" size={18} /></a>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -1806,6 +1890,6 @@ function NotFoundPage({ msg }) {
 
 Object.assign(window, {
   Breadcrumb, PageHead, HomePage, CatalogPage, GoalsPage, BundlesPage, ProductPage, PackPage,
-  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, WholesalePage, ContentPage, FaqItem,
+  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, WholesalePage, ThankYouPage, OrderReceipt, ContentPage, FaqItem,
   AccountPage, NotFoundPage, CONTENT_PAGES, INFO_PAGES,
 });

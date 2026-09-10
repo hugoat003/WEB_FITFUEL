@@ -26,6 +26,7 @@ const PAGE_TITLES = {
   packs: "Packs — FITFUEL",
   pack: "Pack — FITFUEL",
   checkout: "Finalizar compra — FITFUEL",
+  gracias: "Tu pedido — FITFUEL",
   producto: "Producto — FITFUEL",
   blog: "Blog — FITFUEL",
   resenas: "Reseñas — FITFUEL",
@@ -76,6 +77,7 @@ function renderPage(route, ctx) {
     case "packs": return <BundlesPage ctx={ctx} />;
     case "pack": return <PackPage ctx={ctx} route={route} />;
     case "checkout": return <CheckoutPage ctx={ctx} />;
+    case "gracias": return <ThankYouPage ctx={ctx} route={route} />;
     case "producto": return <ProductPage ctx={ctx} route={route} />;
     case "blog": return route.parts[1] ? <BlogPostPage route={route} /> : <BlogPage />;
     case "resenas": return <ReviewsPage ctx={ctx} />;
@@ -251,7 +253,9 @@ function App() {
     // El servidor devuelve 200 con la app para cualquier URL (es una SPA), así que una
     // dirección inventada no da un 404 de verdad. Sin esto, Google indexaría basura.
     // Checkout y cuenta tampoco tienen nada que buscar.
-    const noindex = !known || seg === "checkout" || seg === "cuenta";
+    // /gracias/:id lleva un recibo con nombre, teléfono y dirección: sí tiene título propio
+    // (para la pestaña y el historial), pero nunca debe indexarse.
+    const noindex = !known || seg === "checkout" || seg === "cuenta" || seg === "gracias";
     const robots = head.querySelector('meta[name="robots"]');
     if (noindex) {
       upsert('meta[name="robots"]', () => {

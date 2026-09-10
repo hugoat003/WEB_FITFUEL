@@ -257,6 +257,19 @@ a.contact-row:hover { background: var(--bg-2); }
 .order-done > p { color: var(--text-dim); font-size: 17px; margin: 0; max-width: 460px; }
 .order-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
 
+/* Invitación a reseñar en /gracias/:id. Mismo ancho que el recibo para que la columna
+   no se descuadre. */
+.gracias-review {
+  margin-top: 26px; max-width: 420px; width: 100%; text-align: center;
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 22px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.gracias-review .stars { display: flex; gap: 3px; }
+.gracias-review b { font-size: 16px; }
+.gracias-review p { color: var(--text-dim); font-size: 14px; margin: 0; }
+.gracias-review .btn { margin-top: 4px; }
+
+
 /* Recibo */
 .receipt { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 28px; max-width: 420px; width: 100%; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,.06); }
 .receipt-hd { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
@@ -277,7 +290,7 @@ a.contact-row:hover { background: var(--bg-2); }
 @media print {
   body > *:not(.page) { display: none !important; }
   .page { margin: 0; padding: 0; }
-  .hd, .marquee, footer, .toasts, .order-actions, .breadcrumbs { display: none !important; }
+  .hd, .marquee, footer, .toasts, .order-actions, .breadcrumbs, .gracias-review { display: none !important; }
   .receipt { box-shadow: none; border: 1px solid #ccc; max-width: 100%; }
   .order-done > h1 { font-size: 24px; }
   .order-done > p { font-size: 14px; }

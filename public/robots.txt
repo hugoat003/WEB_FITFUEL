@@ -10,5 +10,7 @@ Disallow: /admin
 # /checkout y /cuenta NO se bloquean aquí a propósito. Ya devuelven <meta name="robots"
 # content="noindex"> en el HTML, y bloquear el rastreo impediría a Google leer esa etiqueta:
 # la URL seguiría pudiendo aparecer en los resultados sin que Google pueda saber que no debe.
+# /gracias/:id tampoco: su noindex lo pone la app al montar, así que bloquear el rastreo sería
+# aún peor aquí. Además lleva un id que no se puede adivinar y no se enlaza desde ninguna parte.
 
 Sitemap: https://fitfuelgt.com/sitemap.xml
