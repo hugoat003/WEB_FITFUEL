@@ -648,23 +648,41 @@ function ReviewForm({ ctx }) {
   const [verifiedOrder, setVerifiedOrder] = React.useState(null);
   const [verifying, setVerifying] = React.useState(false);
   const [sending, setSending] = React.useState(false);
+  // Si el cliente pidió usar otro correo, dejamos de intentarlo con el de la sesión.
+  const [manual, setManual] = React.useState(false);
 
-  const verifyPurchase = async (e) => {
-    e.preventDefault();
-    const email = checkEmail.trim().toLowerCase();
+  // Cómo se valida: se compara el correo escrito contra la columna `correo` de los pedidos,
+  // sin distinguir mayúsculas ni espacios, y descartando los cancelados. Lo hace el RPC
+  // `last_order_for_email`, que devuelve SOLO el id del último pedido y nada más.
+  const verify = React.useCallback(async (raw, silent) => {
+    const email = (raw || "").trim().toLowerCase();
     if (!email) return;
-    // Rate limit anti-enumeración de correos.
-    const rl = rateLimit("ff_rl_review", 6, 10 * 60 * 1000);
-    if (!rl.ok) { setVerifyErr(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); return; }
+    // Freno anti-enumeración de correos. En el intento automático no se gasta: el correo
+    // sale de una sesión iniciada, no lo está adivinando nadie.
+    if (!silent) {
+      const rl = rateLimit("ff_rl_review", 6, 10 * 60 * 1000);
+      if (!rl.ok) { setVerifyErr(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); return; }
+    }
     setVerifying(true); setVerifyErr("");
-    // Verifica contra los pedidos REALES en Supabase (RPC que solo devuelve el id del último
-    // pedido de ese correo, sin exponer datos). Antes usaba localStorage (per-dispositivo, falso).
     const { data, error } = await sb.rpc("last_order_for_email", { p_email: email });
     setVerifying(false);
-    if (error) { setVerifyErr("No pudimos verificar ahora. Intenta de nuevo."); return; }
-    if (data) { setVerifiedOrder({ id: data, correo: email }); setStep("form"); setVerifyErr(""); }
-    else setVerifyErr("No encontramos ningún pedido con ese correo. Solo clientes que han comprado pueden dejar una reseña.");
-  };
+    if (error) { if (!silent) setVerifyErr("No pudimos verificar ahora. Intenta de nuevo."); return; }
+    if (data) { setVerifiedOrder({ id: data, correo: email }); setStep("form"); setVerifyErr(""); return; }
+    // En el intento automático no se enseña error: quien inició sesión y no ha comprado
+    // todavía no ha hecho nada mal, solo ve el formulario de siempre.
+    if (!silent) {
+      setVerifyErr("No encontramos ningún pedido con ese correo. Tiene que ser el mismo que usaste al comprar, y los pedidos cancelados no cuentan.");
+    }
+  }, []);
+
+  // Con sesión iniciada nos saltamos el paso de escribir el correo: ya sabemos cuál es.
+  const sessionEmail = (ctx && ctx.user && ctx.user.email) || "";
+  React.useEffect(() => {
+    if (!sessionEmail || manual || step !== "verify") return;
+    verify(sessionEmail, true);
+  }, [sessionEmail, manual, step, verify]);
+
+  const verifyPurchase = (e) => { e.preventDefault(); verify(checkEmail, false); };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -696,11 +714,19 @@ function ReviewForm({ ctx }) {
   }
 
   if (step === "verify") {
+    if (verifying && sessionEmail && !manual) {
+      return (
+        <div className="review-form">
+          <h3 className="co-h">Deja tu reseña</h3>
+          <p style={{ color: "var(--text-dim)", fontSize: 14, margin: 0 }}>Comprobando tu compra…</p>
+        </div>
+      );
+    }
     return (
       <form className="review-form" onSubmit={verifyPurchase}>
         <h3 className="co-h">Deja tu reseña</h3>
         <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 16 }}>
-          Solo clientes que han realizado una compra pueden dejar reseñas. Ingresa el correo que usaste en tu pedido para continuar.
+          Solo quien ha comprado puede dejar una reseña. Escribe el correo que usaste en tu pedido para continuar.
         </p>
         <label>Correo del pedido
           <input type="email" required value={checkEmail} onChange={(e) => { setCheckEmail(e.target.value); setVerifyErr(""); }}
@@ -716,6 +742,15 @@ function ReviewForm({ ctx }) {
     <form className="review-form" onSubmit={submit}>
       <div style={{ background: "var(--surface-2, #f8fafc)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "var(--text-dim)" }}>
         ✓ Compra verificada · Pedido #{verifiedOrder?.id}
+        {sessionEmail && verifiedOrder?.correo === sessionEmail.toLowerCase() && (
+          <>
+            {" · "}
+            <button type="button" className="lnk-plain"
+              onClick={() => { setManual(true); setVerifiedOrder(null); setStep("verify"); setCheckEmail(""); }}>
+              Compré con otro correo
+            </button>
+          </>
+        )}
       </div>
       <div className="co-row">
         <label>Nombre<input required name="nombre" type="text" placeholder="Tu nombre" /></label>
@@ -1230,12 +1265,11 @@ function PackPage({ ctx, route }) {
 // El recibo vivía como estado interno del checkout: al refrescar o navegar desaparecía, y no
 // había forma de recuperarlo porque el carrito ya estaba vacío. Ahora tiene URL propia.
 //
-// LÍMITE CONOCIDO: la tabla `orders` en Supabase solo la puede leer un administrador
-// (`orders_select_admin … using (public.is_admin())`) y no existe RPC para consultar un
-// pedido propio. Así que la única fuente que tiene el navegador es la copia local
-// `ff_orders`. Consecuencia: el recibo sobrevive al refresco y a navegar, pero solo en el
-// navegador donde se hizo la compra. Desde otro dispositivo mandamos al correo de
-// confirmación, que sí llega a cualquier parte.
+// Esta página no pide nada a la red: lee la copia local `ff_orders`, así que es instantánea
+// y funciona sin conexión, pero solo en el navegador donde se compró. Para verlo desde
+// cualquier dispositivo está /pedido/:id, que consulta el estado real en Supabase pidiendo
+// el correo. Son dos páginas a propósito: meter una pregunta por el correo justo después de
+// pagar sería absurdo, y esta no necesita saber el estado, que acaba de nacer.
 function findLocalOrder(id) {
   if (window.__ffLastOrder && window.__ffLastOrder.id === id) return window.__ffLastOrder;
   try {
@@ -1295,15 +1329,20 @@ function OrderReceipt({ o }) {
         <div className="receipt-row receipt-total-line"><b>Total</b><b>{money(o.total)}</b></div>
       </div>
 
+      {/* Cada línea se pinta solo si tiene contenido: la consulta pública de /pedido/:id
+          devuelve a propósito el pedido SIN dirección ni teléfono, y sin esta guarda
+          saldría una línea ", Mixco" y un "Tel:" vacío. */}
       <div className="receipt-section">
         <div className="receipt-label">Datos de entrega</div>
-        <div className="receipt-info">{o.nombre}</div>
-        <div className="receipt-info">{o.direccion}, {o.municipio}</div>
-        <div className="receipt-info">{o.departamento}</div>
+        {o.nombre && <div className="receipt-info">{o.nombre}</div>}
+        {(o.direccion || o.municipio) && (
+          <div className="receipt-info">{[o.direccion, o.municipio].filter(Boolean).join(", ")}</div>
+        )}
+        {o.departamento && <div className="receipt-info">{o.departamento}</div>}
         {o.referencia && <div className="receipt-info">Ref: {o.referencia}</div>}
-        <div className="receipt-info">Tel: {o.telefono}</div>
+        {o.telefono && <div className="receipt-info">Tel: {o.telefono}</div>}
         {o.correo && <div className="receipt-info">{o.correo}</div>}
-        <div className="receipt-info" style={{ marginTop: 6 }}>Pago: <b>{o.pago}</b></div>
+        {o.pago && <div className="receipt-info" style={{ marginTop: 6 }}>Pago: <b>{o.pago}</b></div>}
       </div>
 
       <div className="receipt-footer">FITFUEL Guatemala · fitfuelgt.com</div>
@@ -1325,10 +1364,13 @@ function ThankYouPage({ ctx, route }) {
             <Icon name="package" size={40} />
             <div>
               No encontramos el pedido {id ? <b>#{id}</b> : "que buscas"} en este navegador.<br />
-              Guardamos el recibo solo en el dispositivo donde se hizo la compra. Si compraste desde otro
-              teléfono o borraste los datos del navegador, busca el correo de confirmación: ahí va el mismo resumen.
+              Guardamos el recibo solo en el dispositivo donde se compró. Puedes consultarlo desde
+              cualquier teléfono con el correo que usaste al comprar.
             </div>
-            <a className="btn btn-primary" href="/contacto">Escríbenos <Icon name="arrow" size={18} /></a>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+              {id && <a className="btn btn-primary" href={"/pedido/" + id}>Ver el estado de mi pedido <Icon name="arrow" size={18} /></a>}
+              <a className="btn btn-ghost" href="/contacto">Escríbenos</a>
+            </div>
           </div>
         </div>
       </section>
@@ -1369,6 +1411,9 @@ function ThankYouPage({ ctx, route }) {
             </button>
             <a className="btn btn-ghost btn-lg" href={mailHref}>Enviar a mi correo</a>
           </div>
+          <div style={{ marginTop: 12 }}>
+            <a className="ord-link" href={"/pedido/" + o.id}>Ver el estado de mi pedido <Icon name="arrow" size={15} /></a>
+          </div>
 
           {/* Invitación a reseñar. El formulario de /resenas verifica el correo contra los
               pedidos reales, así que a partir de ahora este cliente ya pasa el filtro. */}
@@ -1387,6 +1432,213 @@ function ThankYouPage({ ctx, route }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ---------------- SEGUIMIENTO DEL PEDIDO ---------------- */
+// /pedido/:id — la única forma que tiene un cliente de ver el estado de su pedido desde
+// cualquier dispositivo, con cuenta o sin ella. Consulta el RPC `order_public_status`
+// (docs/SUPABASE-PEDIDO-PUBLICO.md), que exige id + correo.
+//
+// Por qué pide el correo: el id es marca de tiempo en base36 más tres caracteres al azar,
+// unas 46.000 combinaciones sobre una mitad predecible. No es un secreto, así que por sí
+// solo no puede abrir un pedido. El correo NUNCA viaja en la URL: un correo reenviado no
+// debe ser una credencial que funcione, y la dirección no tiene por qué quedar en el
+// historial del navegador.
+
+const TRACK_STEPS = [
+  { key: "pendiente",  label: "Recibido",   sub: "Ya nos llegó" },
+  { key: "confirmado", label: "Confirmado", sub: "Pago coordinado" },
+  { key: "enviado",    label: "En camino",  sub: "Va de camino a tu dirección" },
+  { key: "entregado",  label: "Entregado",  sub: "Llegó a su destino" },
+];
+
+function fmtDay(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  return isNaN(d) ? "" : d.toLocaleDateString("es-GT", { day: "numeric", month: "long" });
+}
+
+function OrderTimeline({ status, statusAt }) {
+  const i = TRACK_STEPS.findIndex((s) => s.key === status);
+  const idx = i < 0 ? 0 : i;
+  return (
+    <ol className="ord-track" aria-label={`Estado: ${STATUS_LABELS[status] || status}`}>
+      {TRACK_STEPS.map((s, n) => (
+        <li key={s.key} className={"ord-step" + (n <= idx ? " is-done" : "") + (n === idx ? " is-now" : "")}>
+          <span className="ord-dot" aria-hidden="true">
+            {n < idx ? <Icon name="check" size={12} stroke={3} /> : null}
+          </span>
+          <div className="ord-step-txt">
+            <b>{s.label}</b>
+            <span>{n === idx && statusAt ? fmtDay(statusAt) : s.sub}</span>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function OrderStatusPage({ ctx, route }) {
+  const id = (route.parts[1] || "").toUpperCase();
+  const local = React.useMemo(() => (id ? findLocalOrder(id) : null), [id]);
+
+  // El correo se rellena solo cuando ya lo sabemos, que es el caso normal: o se compró en
+  // este navegador, o hay sesión iniciada. El campo solo aparece cuando de verdad hace falta.
+  const known = (local && local.correo) || (ctx.user && ctx.user.email) || "";
+  const [email, setEmail] = React.useState(known);
+  const [srv, setSrv] = React.useState(null);
+  const [phase, setPhase] = React.useState(known ? "loading" : "ask");  // ask | loading | ok | none | slow | off
+  const [err, setErr] = React.useState("");
+
+  React.useEffect(() => { window.scrollTo(0, 0); }, [id]);
+
+  const lookup = React.useCallback(async (correo) => {
+    const mail = (correo || "").trim();
+    if (!id || !mail) { setPhase("ask"); return; }
+    // No es seguridad, el freno de verdad está en Postgres. Es para no gastar el cubo del
+    // servidor con el cliente que se equivoca al teclear.
+    const rl = rateLimit("ff_rl_pedido", 8, 10 * 60 * 1000);
+    if (!rl.ok) { setErr(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); setPhase("ask"); return; }
+    setPhase("loading"); setErr("");
+    const { data, error } = await sb.rpc("order_public_status", { p_id: id, p_email: mail });
+    if (error) {
+      const msg = error.message || "";
+      // El SQL todavía no está corrido. Jamás decir "no existe" por esto: el pedido puede
+      // existir perfectamente. Mismo respaldo que ya usa top_products.
+      if (error.code === "PGRST202" || /does not exist|schema cache/i.test(msg)) { setPhase("off"); return; }
+      if (/DEMASIADOS_INTENTOS/.test(msg)) { setErr("Demasiados intentos. Espera unos minutos."); setPhase("ask"); return; }
+      setPhase("off"); return;
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) { setPhase("none"); return; }
+    setSrv(row); setPhase("ok");
+  }, [id]);
+
+  React.useEffect(() => { if (known) lookup(known); }, [known, lookup]);
+
+  if (!id) return <NotFoundPage msg="No indicaste ningún pedido." />;
+
+  const head = (
+    <>
+      <Breadcrumb items={[{ label: "Inicio", to: "/" }, { label: "Mi pedido" }]} />
+      <PageHead eyebrow="Seguimiento" title="Estado de tu pedido" sub={`Pedido #${id}`} />
+    </>
+  );
+  const wrap = (inner) => (
+    <section className="page"><div className="ff-wrap ff-narrow">{head}{inner}</div></section>
+  );
+
+  if (phase === "loading") {
+    return wrap(<p style={{ color: "var(--text-dim)", textAlign: "center", padding: "50px 0" }}>Buscando tu pedido…</p>);
+  }
+
+  if (phase === "ask") {
+    return wrap(
+      <form className="ord-gate" onSubmit={(e) => { e.preventDefault(); lookup(email); }}>
+        <label>Correo de la compra
+          <input required type="email" value={email} autoComplete="email"
+            onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@email.com" />
+        </label>
+        <p className="ord-gate-why">Lo pedimos para que nadie más pueda ver tus datos. Es el correo con el que hiciste el pedido.</p>
+        {err && <p className="ord-gate-err">{err}</p>}
+        <button className="btn btn-primary btn-block btn-lg" type="submit">Ver mi pedido <Icon name="arrow" size={18} /></button>
+      </form>
+    );
+  }
+
+  if (phase === "none") {
+    // Correo equivocado, id equivocado y pedido inexistente dan el MISMO mensaje. Decir
+    // "el pedido existe pero el correo no coincide" confirmaría que ese pedido existe.
+    return wrap(
+      <div className="cart-empty" style={{ padding: "60px 20px" }}>
+        <Icon name="package" size={40} />
+        <div>
+          No encontramos un pedido con esos datos.<br />
+          Revisa el número y el correo con el que compraste.
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button className="btn btn-ghost" onClick={() => { setPhase("ask"); setErr(""); }}>Probar con otro correo</button>
+          <a className="btn btn-primary" href="/contacto">Escríbenos <Icon name="arrow" size={18} /></a>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "off") {
+    // Sin servidor pero con copia local: se enseña el recibo y se calla el estado. La copia
+    // local nace congelada en "pendiente", así que pintar la línea de tiempo sería mentir.
+    if (local) {
+      return wrap(
+        <div className="order-done">
+          <p className="ord-warn">No podemos consultar el estado en vivo ahora mismo. Este es el recibo guardado en este dispositivo.</p>
+          <OrderReceipt o={local} />
+          <div style={{ marginTop: 16 }}><a className="btn btn-ghost" href="/contacto">Escríbenos</a></div>
+        </div>
+      );
+    }
+    return wrap(
+      <div className="cart-empty" style={{ padding: "60px 20px" }}>
+        <Icon name="package" size={40} />
+        <div>No podemos consultar tu pedido en este momento.<br />Inténtalo en un rato o escríbenos y lo miramos.</div>
+        <a className="btn btn-primary" href="/contacto">Escríbenos <Icon name="arrow" size={18} /></a>
+      </div>
+    );
+  }
+
+  // ── Encontrado ──
+  // El servidor manda en lo que cambia; lo local aporta lo que el RPC no devuelve a
+  // propósito (dirección, teléfono). `nombre` se protege aparte: el RPC solo manda el
+  // primer nombre, y no debe pisar el nombre completo que sí tiene la copia local.
+  const o = {
+    ...(local || {}), ...srv,
+    nombre: (local && local.nombre) || srv.nombre,
+    date: srv.created_at || (local && local.date),
+  };
+  const st = srv.status || "pendiente";
+  const cancel = st === "cancelado";
+
+  return wrap(
+    <div className="order-done">
+      {cancel ? (
+        // "Cancelado" no cabe en un raíl de cuatro pasos: pintarlo como paso 0 se lee como
+        // "sigue pendiente", que es peor que no decir nada.
+        <div className="ord-cancel">
+          <b>Pedido cancelado</b>
+          {srv.status_at && <span>El {fmtDay(srv.status_at)}</span>}
+          <p>Si crees que es un error, escríbenos y lo revisamos.</p>
+          <a className="btn btn-ghost" href="/contacto">Contactar <Icon name="arrow" size={18} /></a>
+        </div>
+      ) : (
+        <OrderTimeline status={st} statusAt={srv.status_at} />
+      )}
+
+      <OrderReceipt o={o} />
+
+      <div className="order-actions" style={{ marginTop: 20 }}>
+        <button className="btn btn-ghost" onClick={() => lookup(email || known)}>
+          <Icon name="arrow" size={16} /> Actualizar
+        </button>
+        <button className="btn btn-accent" onClick={() => window.print()}>
+          <Icon name="shield" size={18} /> Imprimir / Guardar PDF
+        </button>
+      </div>
+
+      {st === "entregado" && (
+        <div className="gracias-review">
+          <div className="stars" aria-hidden="true">
+            {[...Array(5)].map((_, s) => <Icon key={s} name="star" size={17} fill={true} stroke={0} style={{ color: "var(--accent)" }} />)}
+          </div>
+          <b>¿Qué tal te fue?</b>
+          <p>Tu reseña ayuda a que otros elijan bien. Solo necesitas el correo con el que compraste.</p>
+          <a className="btn btn-ghost" href="/resenas">Dejar una reseña <Icon name="arrow" size={18} /></a>
+        </div>
+      )}
+
+      <div style={{ textAlign: "center", marginTop: 16 }}>
+        <a className="btn btn-primary btn-lg" href="/catalogo">Seguir comprando <Icon name="arrow" size={18} /></a>
+      </div>
+    </div>
   );
 }
 
@@ -1846,6 +2098,7 @@ function AccountPage({ ctx, route }) {
                             {o.discount_code && <span style={{ color: "var(--accent)" }}>Descuento ({o.discount_code}): -{money(o.subtotal * o.discount_pct / 100)}</span>}
                             <b>Total: {money(o.total)}</b>
                           </div>
+                          <a className="ord-link" href={"/pedido/" + o.id}>Ver estado y recibo <Icon name="arrow" size={15} /></a>
                         </div>
                       )}
                     </div>
@@ -1893,6 +2146,6 @@ function NotFoundPage({ msg }) {
 
 Object.assign(window, {
   Breadcrumb, PageHead, HomePage, CatalogPage, GoalsPage, BundlesPage, ProductPage, PackPage,
-  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, WholesalePage, ThankYouPage, OrderReceipt, ContentPage, FaqItem,
+  CheckoutPage, BlogPage, BlogPostPage, ReviewsPage, ReviewForm, ContactPage, WholesalePage, ThankYouPage, OrderReceipt, OrderStatusPage, ContentPage, FaqItem,
   AccountPage, NotFoundPage, CONTENT_PAGES, INFO_PAGES,
 });

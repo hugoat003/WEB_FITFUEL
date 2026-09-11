@@ -52,3 +52,12 @@
 /admin
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
+
+# El recibo y el seguimiento llevan nombre, dirección y teléfono. La etiqueta <meta
+# name="robots"> que pone la app solo existe cuando React ha montado; esta cabecera está
+# desde el primer byte, y es la que de verdad impide que se indexen.
+/gracias/*
+  X-Robots-Tag: noindex, nofollow
+
+/pedido/*
+  X-Robots-Tag: noindex, nofollow

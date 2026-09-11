@@ -27,6 +27,7 @@ const PAGE_TITLES = {
   pack: "Pack — FITFUEL",
   checkout: "Finalizar compra — FITFUEL",
   gracias: "Tu pedido — FITFUEL",
+  pedido: "Estado de tu pedido — FITFUEL",
   producto: "Producto — FITFUEL",
   blog: "Blog — FITFUEL",
   resenas: "Reseñas — FITFUEL",
@@ -77,6 +78,7 @@ function renderPage(route, ctx) {
     case "pack": return <PackPage ctx={ctx} route={route} />;
     case "checkout": return <CheckoutPage ctx={ctx} />;
     case "gracias": return <ThankYouPage ctx={ctx} route={route} />;
+    case "pedido": return <OrderStatusPage ctx={ctx} route={route} />;
     case "producto": return <ProductPage ctx={ctx} route={route} />;
     case "blog": return route.parts[1] ? <BlogPostPage route={route} /> : <BlogPage />;
     case "resenas": return <ReviewsPage ctx={ctx} />;
@@ -251,9 +253,11 @@ function App() {
     // El servidor devuelve 200 con la app para cualquier URL (es una SPA), así que una
     // dirección inventada no da un 404 de verdad. Sin esto, Google indexaría basura.
     // Checkout y cuenta tampoco tienen nada que buscar.
-    // /gracias/:id lleva un recibo con nombre, teléfono y dirección: sí tiene título propio
-    // (para la pestaña y el historial), pero nunca debe indexarse.
-    const noindex = !known || seg === "checkout" || seg === "cuenta" || seg === "gracias";
+    // /gracias/:id y /pedido/:id llevan un recibo con nombre, teléfono y dirección: sí
+    // tienen título propio (para la pestaña y el historial), pero nunca deben indexarse.
+    // Además llevan X-Robots-Tag en _headers, que está desde el primer byte; esta etiqueta
+    // solo existe cuando React ha montado.
+    const noindex = !known || seg === "checkout" || seg === "cuenta" || seg === "gracias" || seg === "pedido";
     const robots = head.querySelector('meta[name="robots"]');
     if (noindex) {
       upsert('meta[name="robots"]', () => {

@@ -51,7 +51,7 @@ const STATUS = {
   confirmado: { label: "Confirmado", emoji: "✅", color: "#2E7D5B",
     msg: "Tu pedido fue confirmado y lo estamos preparando. 💪",
     subject: (id) => `✅ Tu pedido #${id} fue confirmado` },
-  enviado: { label: "Enviado", emoji: "🚚", color: "#2F6FB0",
+  enviado: { label: "En camino", emoji: "🚚", color: "#2F6FB0",
     msg: "Tu pedido va en camino. 🚚",
     subject: (id) => `🚚 Tu pedido #${id} va en camino` },
   entregado: { label: "Entregado", emoji: "📦", color: "#1F8A70",

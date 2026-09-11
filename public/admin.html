@@ -1445,8 +1445,9 @@ async function changeOrderStatus(idx, status) {
   } catch (e) { toast('No se guardó en Supabase: ' + (e.message || e), true); }
   if (ok) toast('Estado actualizado ✓');
 
-  // Aviso por correo al cliente (reutiliza la plantilla de confirmación)
-  notifyStatus(o, status);
+  // Aviso por correo al cliente. Solo si el guardado funcionó: si no, le estaríamos
+  // diciendo que su pedido cambió de estado cuando en la base sigue como estaba.
+  if (ok) notifyStatus(o, status);
 
   if (status === 'cancelado' && prev !== 'cancelado') {
     const items = o.items || [];
@@ -1489,7 +1490,7 @@ async function notifyStatus(o, status) {
         id: o.id, correo: o.correo, nombre: o.nombre,
         date: o.date ? fmtDate(o.date) : '',
         items: o.items, subtotal: o.subtotal, shipping: o.shipping, total: o.total,
-        discount_code: o.discount_code,
+        discount_code: o.discount_code, discount_pct: o.discount_pct,
         direccion: o.direccion, municipio: o.municipio, departamento: o.departamento,
         telefono: o.telefono, pago: o.pago,
       }),
