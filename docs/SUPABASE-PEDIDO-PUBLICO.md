@@ -14,16 +14,20 @@ Este bloque añade lo que falta. **Es todo aditivo**: tabla nueva, funciones nue
 nueva con valor por defecto y una política nueva. Nada de lo que ya está desplegado lo usa,
 así que se puede correr en cualquier momento sin romper la tienda.
 
-> Supabase → **SQL Editor** → pegar todo → **Run**.
+> Supabase → **SQL Editor**. Son cuatro bloques. **Cópialos enteros, uno por uno y en
+> orden**, y dale a Run después de cada uno. El bloque 4 necesita que el 3 ya esté corrido.
+>
+> Copia siempre de la primera a la última línea del recuadro. Si te dejas fuera la línea que
+> cierra, Postgres avisa con `syntax error at or near ";"`: no es que el SQL esté mal, es que
+> le falta el paréntesis o el punto y coma del final.
 
 ---
 
-## El bloque
+## Los bloques
+
+### Bloque 1 de 4 — El cliente logueado ve SUS pedidos
 
 ```sql
--- ═══════════════════════════════════════════════════════════════════════════
--- 1) El cliente logueado ve SUS pedidos
--- ═══════════════════════════════════════════════════════════════════════════
 -- Las políticas permisivas se suman con OR, así que esto no cambia nada de lo
 -- que ve el administrador.
 --
@@ -34,11 +38,11 @@ así que se puede correr en cualquier momento sin romper la tienda.
 drop policy if exists "orders_select_own" on public.orders;
 create policy "orders_select_own" on public.orders
   for select using (user_id is not null and user_id = auth.uid());
+```
 
+### Bloque 2 de 4 — Cuándo cambió de estado
 
--- ═══════════════════════════════════════════════════════════════════════════
--- 2) Cuándo cambió de estado
--- ═══════════════════════════════════════════════════════════════════════════
+```sql
 -- Una página de seguimiento que no puede decir CUÁNDO se envió es media página.
 --
 -- Se sella con un disparador y no desde el panel a propósito: si el panel
@@ -60,11 +64,11 @@ drop trigger if exists trg_orders_stamp_status on public.orders;
 create trigger trg_orders_stamp_status
   before update on public.orders
   for each row execute function public.orders_stamp_status();
+```
 
+### Bloque 3 de 4 — Cubo de intentos, en el servidor
 
--- ═══════════════════════════════════════════════════════════════════════════
--- 3) Cubo de intentos, en el servidor
--- ═══════════════════════════════════════════════════════════════════════════
+```sql
 -- El limitador que ya usa la tienda vive en localStorage: frena al cliente que
 -- insiste, no a un script. Buscar un pedido por id+correo SÍ es adivinable a
 -- fuerza bruta, porque el id solo lleva 3 caracteres al azar sobre una marca de
@@ -108,11 +112,11 @@ $fn$;
 -- public. Esta función es interna: si se pudiera llamar desde el navegador,
 -- cualquiera llenaría el cubo del correo de otro y lo dejaría fuera.
 revoke execute on function public.throttle_hit(text, int, interval) from public, anon, authenticated;
+```
 
+### Bloque 4 de 4 — Consulta pública de UN pedido: id + correo
 
--- ═══════════════════════════════════════════════════════════════════════════
--- 4) Consulta pública de UN pedido: id + correo
--- ═══════════════════════════════════════════════════════════════════════════
+```sql
 -- NO devuelve dirección, teléfono, correo ni user_id. Quien acierta el par
 -- id+correo es casi seguro el cliente, pero "casi" no basta para entregarle a
 -- alguien una dirección de entrega. El nombre sale recortado al primero, que es
