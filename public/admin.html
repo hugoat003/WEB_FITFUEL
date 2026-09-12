@@ -1491,6 +1491,9 @@ async function notifyStatus(o, status) {
         date: o.date ? fmtDate(o.date) : '',
         items: o.items, subtotal: o.subtotal, shipping: o.shipping, total: o.total,
         discount_code: o.discount_code, discount_pct: o.discount_pct,
+        // El token del enlace de un solo clic. El panel lee la fila completa, asi que ya lo
+        // tiene; el cliente no puede conseguirlo por su cuenta.
+        lookup_token: o.lookup_token,
         direccion: o.direccion, municipio: o.municipio, departamento: o.departamento,
         telefono: o.telefono, pago: o.pago,
       }),

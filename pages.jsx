@@ -1412,7 +1412,9 @@ function ThankYouPage({ ctx, route }) {
             <a className="btn btn-ghost btn-lg" href={mailHref}>Enviar a mi correo</a>
           </div>
           <div style={{ marginTop: 12 }}>
-            <a className="ord-link" href={"/pedido/" + o.id}>Ver el estado de mi pedido <Icon name="arrow" size={15} /></a>
+            <a className="ord-link" href={"/pedido/" + o.id + (o.lookup_token ? "?t=" + encodeURIComponent(o.lookup_token) : "")}>
+              Ver el estado de mi pedido <Icon name="arrow" size={15} />
+            </a>
           </div>
 
           {/* Invitación a reseñar. El formulario de /resenas verifica el correo contra los
@@ -1481,6 +1483,7 @@ function OrderTimeline({ status, statusAt }) {
 
 function OrderStatusPage({ ctx, route }) {
   const id = (route.parts[1] || "").toUpperCase();
+  const token = ((route.query && route.query.t) || "").trim();
   const local = React.useMemo(() => (id ? findLocalOrder(id) : null), [id]);
 
   // El correo se rellena solo cuando ya lo sabemos, que es el caso normal: o se compró en
@@ -1488,20 +1491,27 @@ function OrderStatusPage({ ctx, route }) {
   const known = (local && local.correo) || (ctx.user && ctx.user.email) || "";
   const [email, setEmail] = React.useState(known);
   const [srv, setSrv] = React.useState(null);
-  const [phase, setPhase] = React.useState(known ? "loading" : "ask");  // ask | loading | ok | none | slow | off
+  const [phase, setPhase] = React.useState((token || known) ? "loading" : "ask");  // ask | loading | ok | none | off
   const [err, setErr] = React.useState("");
 
   React.useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
-  const lookup = React.useCallback(async (correo) => {
+  // Un solo camino para las dos consultas. El enlace del correo trae `?t=<token>` y entra
+  // directo; sin token hay que pedir el correo.
+  const lookup = React.useCallback(async (correo, tok) => {
     const mail = (correo || "").trim();
-    if (!id || !mail) { setPhase("ask"); return; }
-    // No es seguridad, el freno de verdad está en Postgres. Es para no gastar el cubo del
-    // servidor con el cliente que se equivoca al teclear.
-    const rl = rateLimit("ff_rl_pedido", 8, 10 * 60 * 1000);
-    if (!rl.ok) { setErr(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); setPhase("ask"); return; }
+    if (!tok && (!id || !mail)) { setPhase("ask"); return; }
+    // Con token no se gasta el limitador: el enlace viene del correo del cliente, no lo
+    // está adivinando nadie. Sin token es para no quemar el cubo del servidor con alguien
+    // que se equivoca al teclear; el freno de verdad está en Postgres.
+    if (!tok) {
+      const rl = rateLimit("ff_rl_pedido", 8, 10 * 60 * 1000);
+      if (!rl.ok) { setErr(`Demasiados intentos. Espera ${Math.ceil(rl.retryMs / 60000)} min.`); setPhase("ask"); return; }
+    }
     setPhase("loading"); setErr("");
-    const { data, error } = await sb.rpc("order_public_status", { p_id: id, p_email: mail });
+    const { data, error } = tok
+      ? await sb.rpc("order_status_by_token", { p_token: tok })
+      : await sb.rpc("order_public_status", { p_id: id, p_email: mail });
     if (error) {
       const msg = error.message || "";
       // El SQL todavía no está corrido. Jamás decir "no existe" por esto: el pedido puede
@@ -1511,11 +1521,19 @@ function OrderStatusPage({ ctx, route }) {
       setPhase("off"); return;
     }
     const row = Array.isArray(data) ? data[0] : data;
-    if (!row) { setPhase("none"); return; }
+    if (!row) {
+      // Un token que no encaja no es un callejón sin salida: puede ser un enlace viejo o
+      // recortado por el cliente de correo. Se cae al camino del correo, que sigue ahí.
+      if (tok) { setErr("Ese enlace no nos sirvió. Confirma tu correo y lo buscamos."); setPhase("ask"); return; }
+      setPhase("none"); return;
+    }
     setSrv(row); setPhase("ok");
   }, [id]);
 
-  React.useEffect(() => { if (known) lookup(known); }, [known, lookup]);
+  React.useEffect(() => {
+    if (token) lookup("", token);
+    else if (known) lookup(known, "");
+  }, [token, known, lookup]);
 
   if (!id) return <NotFoundPage msg="No indicaste ningún pedido." />;
 
@@ -1535,7 +1553,7 @@ function OrderStatusPage({ ctx, route }) {
 
   if (phase === "ask") {
     return wrap(
-      <form className="ord-gate" onSubmit={(e) => { e.preventDefault(); lookup(email); }}>
+      <form className="ord-gate" onSubmit={(e) => { e.preventDefault(); lookup(email, ""); }}>
         <label>Correo de la compra
           <input required type="email" value={email} autoComplete="email"
             onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@email.com" />
@@ -1616,7 +1634,7 @@ function OrderStatusPage({ ctx, route }) {
       <OrderReceipt o={o} />
 
       <div className="order-actions" style={{ marginTop: 20 }}>
-        <button className="btn btn-ghost" onClick={() => lookup(email || known)}>
+        <button className="btn btn-ghost" onClick={() => lookup(email || known, token)}>
           <Icon name="arrow" size={16} /> Actualizar
         </button>
         <button className="btn btn-accent" onClick={() => window.print()}>
@@ -1822,7 +1840,28 @@ function CheckoutPage({ ctx }) {
       ctx.toast("¡Pedido recibido! ✦");
 
       // ── 3) Efectos secundarios: ninguno bloquea ni propaga su error ──────────
-      sendClientConfirmation(orderData).catch(() => {});   // correo al cliente
+      // El token del enlace de un solo clic lo genera la base de datos, así que hay que
+      // preguntarlo. Se hace aquí, ya fuera del camino crítico: si falla, el correo sale
+      // con el enlace normal, el que pide el correo del pedido. Nunca al revés.
+      (async () => {
+        let tok = null;
+        try {
+          const { data } = await sb.rpc("order_public_status", { p_id: id, p_email: orderData.correo });
+          const row = Array.isArray(data) ? data[0] : data;
+          tok = (row && row.lookup_token) || null;
+        } catch (_) {}
+        if (tok) {
+          orderData.lookup_token = tok;
+          // Guardarlo en la copia local: así /gracias/:id también enlaza de un solo clic.
+          try {
+            const orders = JSON.parse(localStorage.getItem("ff_orders") || "[]");
+            const n = orders.findIndex((x) => x && x.id === id);
+            if (n >= 0) { orders[n].lookup_token = tok; localStorage.setItem("ff_orders", JSON.stringify(orders)); }
+          } catch (_) {}
+          if (window.__ffLastOrder && window.__ffLastOrder.id === id) window.__ffLastOrder.lookup_token = tok;
+        }
+        sendClientConfirmation(orderData).catch(() => {});   // correo al cliente
+      })();
       notifyNewOrder(orderData, detalle).catch(() => {});  // aviso a la tienda
       // Guardar la dirección para la próxima compra. Antes vivía dentro del bloque
       // crítico, donde un corte de red justo después del RPC duplicaba el pedido.

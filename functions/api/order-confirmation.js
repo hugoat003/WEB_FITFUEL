@@ -50,12 +50,15 @@ function originAllowed(request) {
 const STATUS = {
   confirmado: { label: "Confirmado", emoji: "✅", color: "#2E7D5B",
     msg: "Tu pedido fue confirmado y lo estamos preparando. 💪",
+    cta: "Ver el estado de mi pedido",
     subject: (id) => `✅ Tu pedido #${id} fue confirmado` },
   enviado: { label: "En camino", emoji: "🚚", color: "#2F6FB0",
     msg: "Tu pedido va en camino. 🚚",
+    cta: "Seguir mi pedido",
     subject: (id) => `🚚 Tu pedido #${id} va en camino` },
   entregado: { label: "Entregado", emoji: "📦", color: "#1F8A70",
     msg: "Tu pedido fue entregado. ¡Gracias por tu compra!",
+    cta: "Ver mi recibo",
     subject: (id) => `📦 Tu pedido #${id} fue entregado` },
   cancelado: { label: "Cancelado", emoji: "✖️", color: "#C0392B",
     msg: "Tu pedido fue cancelado. Si tienes dudas, escríbenos.",
@@ -73,6 +76,28 @@ function itemRows(items) {
   }).join("");
 }
 
+// El dominio va escrito a mano a proposito. Derivarlo del Origin significaria que, si el
+// panel se abre desde una vista previa *.pages.dev, al cliente le llegaria un enlace a la
+// vista previa en vez de a la tienda.
+const SITE = "https://fitfuelgt.com";
+const ID_RE = /^FF-[A-Z0-9]{4,16}-[A-Z0-9]{2,6}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Con token, el enlace abre el pedido de un solo clic. Sin token, la pagina pide el correo
+// de la compra. Si el id no encaja con el formato no se emite boton: mejor ninguno que uno
+// que lleve a una pagina que no puede resolver.
+function trackCta(order, label) {
+  const id = String((order && order.id) || "");
+  if (!ID_RE.test(id)) return null;
+  const tok = String((order && order.lookup_token) || "");
+  const conToken = UUID_RE.test(tok);
+  return {
+    url: SITE + "/pedido/" + encodeURIComponent(id) + (conToken ? "?t=" + encodeURIComponent(tok) : ""),
+    label,
+    note: conToken ? "" : "Te pediremos el correo con el que compraste.",
+  };
+}
+
 function totalRow(label, val, strong) {
   const pad = strong ? "12px 0 0" : "4px 0";
   const font = strong ? "700 16px" : "14px";
@@ -85,7 +110,7 @@ function totalRow(label, val, strong) {
 // Un único esqueleto para los dos correos: cabecera FITFUEL, banner de color, saludo,
 // resumen del pedido, entrega y pie. Lo que cambia entre uno y otro es el color, el titular
 // y el texto de entrada.
-function emailShell({ accent, banner, emoji, greeting, intro, order, date, footerNote }) {
+function emailShell({ accent, banner, emoji, greeting, intro, order, date, footerNote, cta }) {
   const o = order || {};
   const shipping = Number(o.shipping) || 0;
   // `discount_pct` es un porcentaje entero, igual que en el checkout. Antes el correo
@@ -98,6 +123,20 @@ function emailShell({ accent, banner, emoji, greeting, intro, order, date, foote
     (o.discount_code ? totalRow(`Descuento (${esc(o.discount_code)})`, desc ? "−" + q(desc) : "—") : "") +
     totalRow("Envío", shipping === 0 ? "Gratis" : q(shipping)) +
     (o.total != null ? totalRow("Total", q(o.total), true) : "");
+
+  // Boton. Tabla con `bgcolor` en el <td> y el relleno en el <a>: nada de flexbox ni
+  // <button>, que Outlook y Gmail no soportan. El relleno va en el enlace para que toda la
+  // zona de color sea pulsable, y el `bgcolor` es el respaldo de los clientes que tiran el
+  // `border-radius`. Sin `cta` no se emite nada.
+  const ctaRow = cta && cta.url ? `
+        <tr><td style="padding:24px 24px 0" align="center">
+          <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+            <tr><td bgcolor="${accent}" style="border-radius:10px">
+              <a href="${esc(cta.url)}" style="display:inline-block;padding:14px 30px;font:700 15px Arial,sans-serif;color:#FFFFFF;text-decoration:none;border-radius:10px">${esc(cta.label)}</a>
+            </td></tr>
+          </table>
+          ${cta.note ? `<div style="font:12px Arial,sans-serif;color:#A7A296;margin-top:10px">${esc(cta.note)}</div>` : ""}
+        </td></tr>` : "";
 
   const entrega = o.direccion
     ? `<tr><td style="padding:18px 24px 0">
@@ -135,6 +174,7 @@ function emailShell({ accent, banner, emoji, greeting, intro, order, date, foote
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${totals}</table>
         </td></tr>
         ${entrega}
+        ${ctaRow}
         <tr><td style="padding:26px 24px">
           ${footerNote ? `<div style="font:13px/1.6 Arial,sans-serif;color:#8C877C;text-align:center;margin-bottom:14px">${esc(footerNote)}</div>` : ""}
           <div style="border-top:1px solid #ECEAE3;padding-top:16px;text-align:center">
@@ -173,6 +213,9 @@ export async function onRequestPost(context) {
       accent: st.color, banner: st.label, emoji: st.emoji,
       greeting: `Hola ${nombre}`, intro: st.msg,
       order: d, date: d.date,
+      // `cancelado` es el unico sin boton: lo que veria ahi el cliente es un recuadro rojo,
+      // y lo util es que responda a este correo, que el pie ya le invita a hacer.
+      cta: st.cta ? trackCta(d, st.cta) : null,
       footerNote: "¿Alguna duda con tu pedido? Responde a este correo y te ayudamos.",
     });
   } else {
@@ -181,6 +224,9 @@ export async function onRequestPost(context) {
       accent: "#2E7D5B", banner: "¡Gracias por tu compra!", emoji: "✅",
       greeting: `Hola ${nombre}`, intro: "Recibimos tu pedido correctamente",
       order: d, date: d.date,
+      // El correo que la gente guarda. Es lo que tapa el "compre desde otro telefono y
+      // perdi el recibo": la copia local solo vive en el navegador de la compra.
+      cta: trackCta(d, "Ver el estado de mi pedido"),
       footerNote: "Estamos preparando tu pedido. Te avisaremos por correo cuando cambie de estado.",
     });
   }
