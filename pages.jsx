@@ -2006,7 +2006,10 @@ function CheckoutPage({ ctx }) {
             <div className="co-line"><span>Envío</span><b>{shipping === 0 ? `Gratis` : money(shipping)}</b></div>
             {promo && <div className="co-line co-discount"><span>Descuento ({promo.code})</span><b>-{money(discountAmt)}</b></div>}
             <div className="co-total"><span>Total</span><b>{money(total)}</b></div>
-            {!freeShip && <p className="co-ship-note">Agrega {money((FF.FREE_SHIP || 400) - subtotal)} más para envío gratis</p>}
+            {/* Misma barra que el carrito, pero sin sugerencia: en el momento de confirmar,
+                un botón de añadir compitiendo con el de confirmar es una distracción, y
+                actuar sobre él obliga a volver al carrito. */}
+            {!freeShip && <ShipProgress subtotal={subtotal} items={items} suggest={false} />}
           </aside>
         </div>
       </div>

@@ -147,12 +147,9 @@ function Blog({ compact = false }) {
   );
 }
 
-function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
-  const FREE_SHIP = FF.FREE_SHIP || 400;
+function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout, onAdd }) {
   const total = items.reduce((s, it) => s + it.price * it.qty, 0);
   const count = items.reduce((s, it) => s + it.qty, 0);
-  const remaining = Math.max(0, FREE_SHIP - total);
-  const pct = Math.min(100, (total / FREE_SHIP) * 100);
   const trapRef = useFocusTrap(open, onClose);
   return (
     <>
@@ -196,18 +193,14 @@ function CartDrawer({ open, items, onClose, onQty, onRemove, onCheckout }) {
               ))}
             </div>
             <div className="drawer-foot">
-              <div className="ship-note">
-                {remaining > 0
-                  ? <>Te faltan <b style={{ color: "var(--accent)" }}>{money(remaining)}</b> para el envío gratis</>
-                  : <><Icon name="truck" size={14} style={{ verticalAlign: "-2px" }} /> ¡Envío gratis desbloqueado!</>}
-              </div>
-              <div className="ship-bar"><i style={{ width: pct + "%" }} /></div>
+              <ShipProgress subtotal={total} items={items} onClose={onClose}
+                onAdd={(p) => onAdd && onAdd(p)} />
               <div className="cart-total" style={{ marginTop: 16 }}>
                 <span style={{ color: "var(--text-dim)" }}>Subtotal</span>
                 <b>{money(total)}</b>
               </div>
               <p style={{ fontSize: 12, color: "var(--text-dim)", margin: "4px 0 0" }}>
-                Envío y descuento se calculan al finalizar.
+                Envío y descuento se confirman al finalizar, con tu dirección.
               </p>
               <button className="btn btn-primary btn-block btn-lg" onClick={onCheckout}>
                 Finalizar compra <Icon name="arrow" size={18} />

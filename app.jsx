@@ -429,7 +429,7 @@ function App() {
 
       <QuickView product={quick} onClose={() => setQuick(null)} onAdd={onAdd} />
       <CartDrawer open={cartOpen} items={cartItems} onClose={() => setCartOpen(false)}
-        onQty={onQty} onRemove={onRemove} onCheckout={onCheckout} />
+        onQty={onQty} onRemove={onRemove} onCheckout={onCheckout} onAdd={onAdd} />
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
       {userMenuOpen && user && <UserMenu user={user} onClose={() => setUserMenuOpen(false)} />}

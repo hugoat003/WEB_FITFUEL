@@ -321,9 +321,38 @@
 .link-x:hover { color: var(--accent); }
 .cart-empty { text-align: center; color: var(--text-dim); padding: 60px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .drawer-foot { border-top: 1px solid var(--border); padding: 20px 22px; background: var(--bg-2); }
-.ship-bar { height: 8px; border-radius: 100px; background: var(--surface-2); overflow: hidden; margin: 4px 0 6px; }
-.ship-bar i { display: block; height: 100%; background: var(--accent); border-radius: 100px; transition: width .4s var(--ease); }
-.ship-note { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+/* Hotbar de envío gratis. Antes eran 8px de barra y 12px de texto apagado: se leía como
+   decoración, no como una oferta. */
+.ship-hot {
+  background: var(--accent-soft); border: 1px solid var(--accent);
+  border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 16px;
+}
+.ship-hot-txt { display: flex; align-items: center; gap: 8px; margin: 0 0 9px; font-size: 13.5px; color: var(--text); }
+.ship-hot-txt b { color: var(--accent); font-family: var(--font-display); font-size: 16px; letter-spacing: -0.01em; }
+.ship-hot.is-free .ship-hot-txt { margin-bottom: 0; }
+.ship-hot.is-free .ship-hot-bar { margin-top: 9px; }
+.ship-hot-bar { height: 10px; border-radius: 100px; background: var(--surface-2); overflow: hidden; }
+.ship-hot-bar i { display: block; height: 100%; background: var(--accent); border-radius: 100px; transition: width .4s var(--ease); }
+.ship-hot-sub { margin: 7px 0 0; font-size: 11.5px; color: var(--text-dim); }
+
+.ship-sugg {
+  display: flex; align-items: center; gap: 11px; margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.ship-sugg-vis { display: block; width: 48px; height: 48px; border-radius: var(--r-sm); flex: none; overflow: hidden; }
+.ship-sugg-main { flex: 1; min-width: 0; }
+.ship-sugg-eyebrow { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+.ship-sugg-name {
+  display: block; font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ship-sugg-name:hover { color: var(--accent); }
+.ship-sugg-price { font-family: var(--font-display); font-size: 15px; }
+.ship-sugg-btn { flex: none; }
+
+/* El pie del cajón crece a costa de .drawer-body, que es flex:1 sin mínimo y puede quedarse
+   en nada. En pantallas bajas lo que cede es la sugerencia, nunca la barra. */
+@media (max-height: 600px) { .ship-sugg { display: none; } }
 .cart-total { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
 .cart-total b { font-family: var(--font-display); font-size: 30px; letter-spacing: -0.02em; }
 

@@ -221,6 +221,118 @@ function useCatalogTick() {
   return t;
 }
 
+/* ---------- Empuje al envío gratis ---------- */
+// Sugerencia para cerrar el hueco: el producto MÁS BARATO que, POR SÍ SOLO, llega al mínimo.
+// Sugerir "el más barato" a secas sería una trampa: el cliente añade Q119, sigue pagando
+// envío, y la barra le había prometido lo contrario.
+// Solo recorre FF.PRODUCTS. Los packs quedan fuera a propósito: un pack de Q659 no es una
+// sugerencia para llegar al mínimo, es otra compra.
+function shipSuggestion(remaining, items) {
+  if (!(remaining > 0)) return null;
+  const FF = window.FF || {};
+  const inCart = new Set((items || []).map((it) => it.id));
+  let best = null;
+  (FF.PRODUCTS || []).forEach((p) => {
+    if (!p || inCart.has(p.id)) return;
+    const vs = FF.variantsOf ? FF.variantsOf(p) : [];
+    const multi = vs.length >= 2;
+    // Con varias presentaciones el precio depende del sabor que elija en la ficha, así que
+    // se exige que hasta la más barata cierre el hueco. Si no, la promesa dependería de
+    // cuál acabe eligiendo.
+    const price = vs.length
+      ? Math.min(...vs.map((v) => Number(v.price) || Number(p.price)))
+      : Number(p.price);
+    if (!(price >= remaining)) return;
+    const st = FF.productStock ? FF.productStock(p) : null;   // null = sin límite
+    if (st != null && st <= 0) return;
+    // Orden: primero los de una sola presentación (se añaden sin salir del carrito), luego
+    // por precio, y el id desempata. El desempate NO es cosmético: Glicinato y Omega 3+
+    // cuestan lo mismo, y sin él la sugerencia cambiaría al llegar el catálogo publicado,
+    // que trae los productos en otro orden.
+    const mejor =
+      !best ||
+      (!multi && best.multi) ||
+      (multi === best.multi && (price < best.price || (price === best.price && String(p.id) < String(best.p.id))));
+    if (mejor) best = { p, price, multi };
+  });
+  return best;
+}
+
+// La barra y su sugerencia. Antes eran 8px de barra y 12px de texto apagado en el pie del
+// carrito: se leía como decoración y no sugería nada.
+// `zone` viene de FF.freeShipZoneFor: con envío gratis por zona no hay nada que progresar.
+function ShipProgress({ subtotal, items, onAdd, onClose, zone, suggest = true }) {
+  const tick = useCatalogTick();          // los precios cambian al llegar el catálogo publicado
+  const FF = window.FF || {};
+  const FREE = FF.FREE_SHIP || 400;
+  const remaining = Math.max(0, FREE - subtotal);
+  const pct = Math.min(100, (subtotal / FREE) * 100);
+  // Los ids y no `items`: ctx.cartItems es un array nuevo en cada render y no memoizaría nada.
+  const ids = (items || []).map((it) => it.id).join(",");
+  const sug = React.useMemo(
+    () => (suggest && !zone ? shipSuggestion(remaining, items) : null),
+    [remaining, ids, tick, suggest, !!zone]   // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  if (zone) {
+    return (
+      <div className="ship-hot is-free">
+        <p className="ship-hot-txt">
+          <Icon name="truck" size={16} /> Tu envío es gratis en {FF.zoneLabel ? FF.zoneLabel(zone) : ""}, sin mínimo.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={"ship-hot" + (remaining > 0 ? "" : " is-free")}>
+      <p className="ship-hot-txt">
+        <Icon name="truck" size={16} />
+        {remaining > 0
+          ? <span>Te faltan <b>{money(remaining)}</b> para el envío gratis</span>
+          : <span>Ya tienes envío gratis en este pedido.</span>}
+      </p>
+      <div className="ship-hot-bar" role="progressbar"
+        aria-valuemin={0} aria-valuemax={FREE} aria-valuenow={Math.min(subtotal, FREE)}
+        aria-valuetext={remaining > 0
+          ? `${money(subtotal)} de ${money(FREE)} para el envío gratis`
+          : "Envío gratis alcanzado"}>
+        <i style={{ width: pct + "%" }} />
+      </div>
+      {/* La línea honesta: le da el número para decidir en vez de insinuar un ahorro. Con un
+          hueco de Q380 lo más barato que cierra cuesta Q399, así que hablar de ahorro sería
+          mentir. */}
+      {remaining > 0 && <p className="ship-hot-sub">Sin eso, el envío cuesta {money(FF.SHIP_COST || 35)}.</p>}
+
+      {sug && (
+        <div className="ship-sugg">
+          {/* La foto lleva al mismo sitio que el nombre, así que sale del recorrido con Tab
+              para no dar dos paradas de teclado idénticas. */}
+          <a className="ship-sugg-vis" href={"/producto/" + sug.p.id} onClick={onClose}
+            tabIndex={-1} aria-hidden="true">
+            <ProdImg image={sug.p.image} label="" hue={sug.p.hue} tub={true} />
+          </a>
+          <div className="ship-sugg-main">
+            <span className="ship-sugg-eyebrow">Con esto llegas al mínimo</span>
+            <a className="ship-sugg-name" href={"/producto/" + sug.p.id} onClick={onClose}>{sug.p.name}</a>
+            <b className="ship-sugg-price">{sug.multi ? "Desde " : ""}{money(sug.price)}</b>
+          </div>
+          {sug.multi ? (
+            // Con 2 o más presentaciones no se puede añadir a ciegas: mismo criterio que el
+            // botón + del catálogo, que lleva a la ficha a elegir sabor.
+            <a className="btn btn-ghost btn-sm ship-sugg-btn" href={"/producto/" + sug.p.id}
+              onClick={onClose} aria-label={`Elegir presentación de ${sug.p.name}`}>Elegir</a>
+          ) : (
+            <button type="button" className="btn btn-primary btn-sm ship-sugg-btn"
+              onClick={() => onAdd && onAdd(sug.p)}
+              aria-label={`Agregar ${sug.p.name} por ${money(sug.price)}`}>Agregar</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Rate limiter cliente (ventana deslizante en localStorage). Mitiga spam de
 // pedidos, fuerza bruta de códigos e intentos de login desde el mismo navegador.
 function rateLimit(key, max, windowMs) {
@@ -303,4 +415,4 @@ function useBodyScrollLock(active) {
   }, [active]);
 }
 
-Object.assign(window, { money, fillShip, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useBodyScrollLock, useCatalogTick });
+Object.assign(window, { money, fillShip, shipSuggestion, ShipProgress, num, Icon, Ph, ProdImg, Stars, Avatar, parseLocation, parseHash: parseLocation, toPath, navigate, useRoute, Link, rateLimit, useFocusTrap, useBodyScrollLock, useCatalogTick });
