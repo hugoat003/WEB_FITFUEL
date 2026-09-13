@@ -1205,7 +1205,6 @@ function PackPage({ ctx, route }) {
   React.useEffect(() => { window.scrollTo(0, 0); }, [id]);
   if (!b) return <NotFoundPage msg="No encontramos ese pack." />;
   const value = FF.bundleValue(b);
-  const save = value > b.price ? Math.round((1 - b.price / value) * 100) : 0;
   const color = `oklch(0.72 0.17 ${b.hue})`;
   const products = (b.productIds || [])
     .map((pid) => FF.PRODUCTS.find((p) => p.id === pid))
@@ -1218,7 +1217,6 @@ function PackPage({ ctx, route }) {
         <div className="packhero" style={{ "--ph-color": color }}>
           <div className="packhero-glow" />
           <div className="packhero-info">
-            {save > 0 && <span className="save-tag">AHORRA {save}%</span>}
             <h1 className="display packhero-title">{b.name}</h1>
             <p className="packhero-tag">{b.tagline}</p>
             {b.desc && <p className="packhero-desc">{b.desc}</p>}

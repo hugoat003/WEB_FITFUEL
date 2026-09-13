@@ -11,17 +11,18 @@ function Bundles({ onAddBundle, compact = false }) {
             <h2 className="display">Combina y ahorra</h2>
             <p>Stacks diseñados por objetivo. Todo lo que necesitas, a mejor precio.</p>
           </div>
+          {compact && FF.BUNDLES.length > 3 && (
+            <a className="btn btn-ghost" href="/packs">Ver todos los packs <Icon name="arrow" size={18} /></a>
+          )}
         </div>
         <div className="bgrid">
           {list.map((b) => {
             const value = FF.bundleValue(b);
-            const save = value > b.price ? Math.round((1 - b.price / value) * 100) : 0;
             const color = `oklch(0.72 0.17 ${b.hue})`;
             return (
               <article className="bcard" key={b.id} style={{ "--ph-color": color }}>
                 <div className="bcard-glow" />
                 <a className="bcard-link" href={"/pack/" + b.id} aria-label={"Ver " + b.name} />
-                <span className="save-tag" style={{ position: "relative" }}>AHORRA {save}%</span>
                 <h3>{b.name}</h3>
                 <p className="tagline">{b.tagline}</p>
                 <ul>
