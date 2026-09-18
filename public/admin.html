@@ -2209,22 +2209,36 @@ function readFaqFromDom() {
 
 function delFaq(i) { D.faq = readFaqFromDom(); D.faq.splice(i, 1); renderFaq(); }
 
+// Los campos de tienda física (ciudad, dirección, horario) están COMENTADOS en el HTML
+// mientras no haya local, así que getElementById devuelve null para los tres. Leerlos a
+// pelo lanzaba un TypeError ANTES de llegar a save(): el botón no guardaba nada y tampoco
+// decía nada, porque el aviso "Guardado ✓" vive dentro de save().
+// Se lee con guarda, igual que ya hacía `setv` al cargar, y solo se escriben las claves
+// cuyo campo existe de verdad: escribir "" por un campo ausente borraría el valor guardado.
 function saveContact() {
-  D.contact = Object.assign({}, D.contact, {
-    phone: document.getElementById('c-phone').value.trim(),
-    whatsapp: document.getElementById('c-whatsapp').value.trim(),
-    email: document.getElementById('c-email').value.trim(),
-    city: document.getElementById('c-city').value.trim(),
-    address: document.getElementById('c-address').value.trim(),
-    hours: document.getElementById('c-hours').value.trim(),
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : null; };
+  const next = Object.assign({}, D.contact);
+  [['phone', 'c-phone'], ['whatsapp', 'c-whatsapp'], ['email', 'c-email'],
+   ['city', 'c-city'], ['address', 'c-address'], ['hours', 'c-hours']].forEach(([k, id]) => {
+    const v = val(id);
+    if (v !== null) next[k] = v;
   });
-  const digits = D.contact.whatsapp.replace(/[^0-9]/g, '');
+  D.contact = next;
+  const digits = String(D.contact.whatsapp || '').replace(/[^0-9]/g, '');
   D.contact.whatsappLink = digits ? 'https://wa.me/' + digits : '';
-  const fs = parseInt(document.getElementById('c-freeship').value);
-  if (!isNaN(fs)) D.freeShip = fs;
-  const sc = parseInt(document.getElementById('c-shipcost').value);
-  if (!isNaN(sc)) D.shipCost = sc;
+
+  const ent = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const n = parseInt(el.value, 10);
+    return isFinite(n) && n >= 0 ? n : null;
+  };
+  const fs = ent('c-freeship'); if (fs !== null) D.freeShip = fs;
+  const sc = ent('c-shipcost'); if (sc !== null) D.shipCost = sc;
   save();
+  // El aviso de save() dice "Guardado", que en este panel significa guardado EN ESTE
+  // NAVEGADOR. Estos dos números son los que cobran, así que conviene decir lo que falta.
+  toast('Envío gratis desde Q' + D.freeShip + ' · tarifa Q' + D.shipCost + '. Falta Publicar.');
 }
 
 function saveFaq() { D.faq = readFaqFromDom(); save(); renderFaq(); }
