@@ -234,6 +234,8 @@ a.contact-row:hover { background: var(--bg-2); }
 .co-total span { color: var(--text-dim); }
 .co-total b { font-family: var(--font-display); font-size: 28px; letter-spacing: -0.02em; }
 .co-ship-note { font-size: 12px; color: var(--accent); margin: 10px 0 0; }
+/* Pista bajo el campo de municipio: la tarifa reducida depende de que lo escriba igual. */
+.co-hint { font-size: 11.5px; color: var(--accent); font-weight: 500; }
 
 /* ---------- FORMULARIO DE RESEÑA ---------- */
 .review-cta { margin-top: 40px; }

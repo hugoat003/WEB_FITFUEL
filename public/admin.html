@@ -671,6 +671,26 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
         </div>
 
         <div class="settings-card">
+          <h3>Zonas con tarifa de envío propia</h3>
+          <p style="font-size:12.5px;color:var(--dim);margin-bottom:12px">
+            Aquí el envío cuesta menos que la tarifa estándar. <b>No es envío gratis:</b> el envío
+            gratis sigue dependiendo solo del mínimo de compra, aquí y en todo el país.
+            Deja el municipio vacío para aplicar la tarifa a <b>todo el departamento</b>.
+            El cliente escribe su municipio a mano, así que en <b>alias</b> pon las formas en que
+            suele escribirlo (ej. <code>Huehue</code>) o se le cobrará la tarifa completa por una errata.
+            Recuerda <b>Publicar</b> al terminar.
+          </p>
+          <div class="stat-rows" id="zone-rows"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="new-zone-depto" style="flex:1;min-width:150px"></select>
+            <input type="text" id="new-zone-muni" placeholder="Municipio (vacío = todo el depto)" style="flex:1;min-width:150px" />
+            <input type="number" id="new-zone-cost" min="0" step="1" placeholder="Q" style="width:90px" />
+            <input type="text" id="new-zone-alias" placeholder="Alias, separados por coma" style="flex:1;min-width:150px" />
+            <button class="btn btn-primary" id="btn-add-zone">Añadir</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
           <h3>Preguntas frecuentes (FAQ)</h3>
           <div id="faq-rows" style="display:flex;flex-direction:column;gap:12px"></div>
           <div style="display:flex;gap:8px;margin-top:12px">
@@ -761,7 +781,7 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
 
 <div class="toasts" id="toasts"></div>
 
-<script src="data.js?v=9"></script>
+<script src="data.js?v=10"></script>
 <script>
 // ── Supabase (cliente al inicio, para el gate de acceso) ───────────────────────
 const SB_URL = 'https://dwdxnpyybzpcjetxedyq.supabase.co';
@@ -862,7 +882,7 @@ async function adminLogout() {
 })();
 
 // ── State ──────────────────────────────────────────────────────────────────────
-let D = { products:[], bundles:[], blog:[], testimonials:[], stats:[], categories:[], goals:[], faq:[], contact:{}, freeShip:400, shipCost:35 };
+let D = { products:[], bundles:[], blog:[], testimonials:[], stats:[], categories:[], goals:[], faq:[], contact:{}, freeShip:400, shipCost:35, shipZones:[] };
 let D_orders = [];
 let curTab = 'ventas';
 let orderFilter = 'all';
@@ -892,6 +912,7 @@ function loadData() {
   D.blog         = clone(FF.BLOG);
   D.testimonials = clone(FF.TESTIMONIALS);
   D.stats        = clone(FF.STATS);
+  D.shipZones    = clone(FF.SHIP_ZONES || []);
   D.categories   = clone(FF.CATEGORIES);
   D.goals        = clone(FF.GOALS);
   D.faq          = clone(FF.FAQ || []);
@@ -2105,6 +2126,7 @@ function delTestim(i) {
 
 // ── AJUSTES ────────────────────────────────────────────────────────────────────
 function renderAjustes() {
+  renderZones();
   document.getElementById('stat-rows').innerHTML = D.stats.map((s, i) => `
     <div class="stat-row">
       <span>${esc(s)}</span>
@@ -2190,6 +2212,36 @@ function saveContact() {
 
 function saveFaq() { D.faq = readFaqFromDom(); save(); renderFaq(); }
 function delStat(i) { D.stats.splice(i, 1); save(); renderAjustes(); }
+function renderZones() {
+  const sel = document.getElementById('new-zone-depto');
+  if (sel && !sel.options.length) sel.innerHTML = (FF.GT_DEPTS || []).map(d => `<option>${esc(d)}</option>`).join('');
+  document.getElementById('zone-rows').innerHTML = (D.shipZones || []).map((z, i) => `
+    <div class="stat-row">
+      <span>${esc(z.depto)} · ${z.municipio ? esc(z.municipio) : 'TODO EL DEPARTAMENTO'} · Q${Number(z.cost)}${(z.aliases || []).length ? ' · alias: ' + esc(z.aliases.join(', ')) : ''}</span>
+      <button onclick="delZone(${i})" title="Quitar">✕</button>
+    </div>
+  `).join('') || '<p style="color:var(--dim);font-size:13px">Sin zonas: todo el país paga la tarifa estándar.</p>';
+}
+function delZone(i) { D.shipZones.splice(i, 1); save(); renderZones(); }
+function addZone() {
+  const depto = document.getElementById('new-zone-depto').value;
+  const municipio = document.getElementById('new-zone-muni').value.trim();
+  const cost = parseInt(document.getElementById('new-zone-cost').value, 10);
+  const aliases = document.getElementById('new-zone-alias').value.split(',').map(x => x.trim()).filter(Boolean);
+  if (!depto) return;
+  if (!isFinite(cost) || cost < 0) { toast('Pon el costo del envío para esa zona', true); return; }
+  D.shipZones = D.shipZones || [];
+  // Sin duplicados: dos filas para el mismo sitio y ganaría la primera, sin que se note.
+  if (D.shipZones.some(z => FF.normZone(z.depto) === FF.normZone(depto) && FF.normZone(z.municipio) === FF.normZone(municipio))) {
+    toast('Esa zona ya está en la lista', true); return;
+  }
+  D.shipZones.push({ depto, municipio, cost, aliases });
+  document.getElementById('new-zone-muni').value = '';
+  document.getElementById('new-zone-cost').value = '';
+  document.getElementById('new-zone-alias').value = '';
+  save(); renderZones();
+}
+
 function addStat() {
   const inp = document.getElementById('new-stat');
   const val = inp.value.trim().toUpperCase();
@@ -2344,6 +2396,7 @@ document.getElementById('btn-restore-texts').onclick = () => {
   renderFaq();
   toast('Textos restaurados. Ahora pulsa Publicar.');
 };
+document.getElementById('btn-add-zone').onclick = addZone;
 document.getElementById('btn-add-stat').onclick = addStat;
 document.getElementById('new-stat').onkeydown = e => { if (e.key === 'Enter') addStat(); };
 const _newCatEl = document.getElementById('new-cat');

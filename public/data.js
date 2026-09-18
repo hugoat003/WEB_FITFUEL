@@ -7,6 +7,90 @@ FF.FREE_SHIP = 400;
 // Costo de envío estándar (Quetzales) — editable desde el admin
 FF.SHIP_COST = 35;
 
+// Zonas con tarifa de envío propia, más barata que la estándar. NO son envío gratis: el
+// envío gratis sigue dependiendo solo del mínimo de compra, aquí y en todo el país.
+// `municipio` vacío = toda la tarifa aplica al departamento entero.
+// `aliases`: las formas en que el cliente escribe de verdad ese municipio. El campo es
+// texto libre, así que los alias son la única defensa contra una errata que le cobre
+// la tarifa completa.
+FF.SHIP_ZONES = [
+  { depto: "Huehuetenango", municipio: "Huehuetenango", cost: 20, aliases: ["Huehue"] },
+];
+
+// Los 22 departamentos. Vive aquí y no en pages.jsx porque el panel también necesita la
+// lista para el editor de zonas, y una tercera copia acabaría desincronizada. NO pasa por
+// FF.applyData a propósito: no es editable, así que un catálogo publicado con basura no
+// puede dejar el checkout sin departamentos.
+FF.GT_DEPTS = [
+  "Guatemala", "Sacatepéquez", "Chimaltenango", "Escuintla", "Quetzaltenango",
+  "Sololá", "Totonicapán", "Suchitepéquez", "Retalhuleu", "San Marcos",
+  "Huehuetenango", "Quiché", "Alta Verapaz", "Baja Verapaz", "Petén",
+  "Izabal", "Zacapa", "Chiquimula", "Jalapa", "Jutiapa", "El Progreso", "Santa Rosa",
+];
+
+/* ── Coincidencia de zona de envío ─────────────────────────────────────────────
+   El municipio lo escribe el cliente a mano, así que compararlo es aproximado por fuerza.
+   Dos decisiones deliberadas:
+     1) El DEPARTAMENTO tiene que coincidir EXACTO. Sale de un <select>, no hay erratas
+        posibles, y ese filtro acota cualquier equivocación a un solo departamento.
+     2) Del municipio se comparan CONJUNTOS DE PALABRAS, sin coincidencias parciales.
+        "San Pedro" NO vale para "San Pedro Necta": son municipios distintos. Nada de
+        distancia de edición: hoy sería segura para Huehuetenango y dejaría de serlo en
+        cuanto se añada una zona en un departamento con nombres parecidos. */
+const ZONE_FILLER = ["municipio", "muni", "de", "del", "la", "el", "los", "las",
+                     "cabecera", "centro", "ciudad", "depto", "departamento", "zona"];
+
+FF.normZone = function (v) {
+  return String(v == null ? "" : v)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // á→a, ñ→n: casi nadie acentúa
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")                         // puntos, comas, guiones → espacio
+    .replace(/\s+/g, " ").trim();
+};
+
+// Palabras que identifican: sin relleno y sin números sueltos ("zona 1").
+function zoneTokens(v) {
+  return FF.normZone(v).split(" ")
+    .filter((t) => t && ZONE_FILLER.indexOf(t) < 0 && !/^\d+$/.test(t));
+}
+const zoneKey = (arr) => Array.from(new Set(arr)).sort().join(" ");
+
+function zoneMuniMatches(typed, z) {
+  const got = zoneTokens(typed);
+  if (!got.length) return false;
+  const deptoTk = zoneTokens(z.depto);
+  // "Chiantla, Huehuetenango": el departamento repetido dentro del municipio no aporta.
+  const noDepto = got.filter((t) => deptoTk.indexOf(t) < 0);
+  const k1 = zoneKey(got);
+  const k2 = noDepto.length ? zoneKey(noDepto) : null;
+  return [z.municipio].concat(z.aliases || [])
+    .map((c) => zoneKey(zoneTokens(c)))
+    .filter(Boolean)
+    .some((k) => k === k1 || (k2 !== null && k === k2));
+}
+
+// La zona que aplica, o null. Sin departamento no hay zona.
+FF.shipZoneFor = function (depto, municipio) {
+  const zs = FF.SHIP_ZONES || [];
+  if (!zs.length || !depto) return null;
+  const d = FF.normZone(depto);
+  for (let i = 0; i < zs.length; i++) {
+    const z = zs[i];
+    if (FF.normZone(z.depto) !== d) continue;
+    if (!FF.normZone(z.municipio)) return z;          // toda la tarifa del departamento
+    if (zoneMuniMatches(municipio, z)) return z;
+  }
+  return null;
+};
+
+// Lo que cuesta el envío a esa dirección, sin contar el mínimo de compra.
+FF.shipCostFor = function (depto, municipio) {
+  const z = FF.shipZoneFor(depto, municipio);
+  const c = z ? Number(z.cost) : NaN;
+  return isFinite(c) && c >= 0 ? c : (FF.SHIP_COST || 35);
+};
+FF.zoneLabel = function (z) { return z ? (z.municipio || z.depto) : ""; };
+
 // Umbral de "Últimas unidades" (avisa escasez sin mostrar la cantidad exacta)
 FF.LOW_STOCK = 5;
 
@@ -715,7 +799,7 @@ FF.CONTACT = {
 // Preguntas frecuentes
 FF.FAQ = [
   { q: "¿Hacen envíos a todo el país?", a: "Sí. Enviamos a los 22 departamentos de Guatemala. El tiempo estimado de entrega es de 2 a 3 días hábiles a cualquier punto del país." },
-  { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de {costoEnvio}. En pedidos desde {envioGratis} el envío es gratis a toda Guatemala." },
+  { q: "¿Cuánto cuesta el envío?", a: "El envío estándar tiene un costo de {costoEnvio}. En pedidos desde {envioGratis} el envío es gratis a toda Guatemala. {zonasEnvio}" },
   { q: "¿Qué métodos de pago aceptan?", a: "Aceptamos pago contra entrega (efectivo) y transferencia bancaria. Si eliges transferencia, te enviamos los datos para completar el pago." },
   { q: "¿Los productos son originales?", a: "Sí. Compramos solo a marcas y distribuidores autorizados, y el producto llega sellado de fábrica, con su lote y su fecha de vencimiento a la vista. Los análisis de laboratorio los certifica cada fabricante: cuando un producto tiene un sello verificable (Creapure®, Banned Substance Tested), lo indicamos en su ficha." },
   { q: "¿Aceptan devoluciones?", a: "Por higiene y seguridad del producto, no aceptamos devoluciones ni cambios una vez realizada la compra. Si tienes dudas sobre qué suplemento elegir, escríbenos desde la página de contacto antes de comprar y te asesoramos sin compromiso." },
@@ -741,6 +825,7 @@ FF.applyData = function (saved) {
   if (saved.contact)      FF.CONTACT      = Object.assign({}, FF.CONTACT, saved.contact);
   if (typeof saved.freeShip === "number") FF.FREE_SHIP = saved.freeShip;
   if (typeof saved.shipCost === "number") FF.SHIP_COST = saved.shipCost;
+  if (Array.isArray(saved.shipZones)) FF.SHIP_ZONES = saved.shipZones;
   if (typeof saved.lowStock === "number") FF.LOW_STOCK = saved.lowStock;
   if (FF.CONTACT && FF.CONTACT.whatsapp) {
     const digits = String(FF.CONTACT.whatsapp).replace(/[^0-9]/g, "");

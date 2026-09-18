@@ -10,9 +10,19 @@ const money = (n) => "Q" + Number(n).toLocaleString("en-US", { minimumFractionDi
 function fillShip(s) {
   if (typeof s !== "string") return s;
   const FF = window.FF || {};
+  // {zonasEnvio} rinde las zonas con tarifa propia, o cadena vacía si no hay ninguna. La FAQ
+  // vive en el catálogo publicado, así que nombrarlas a mano allí significaría que al
+  // cambiarlas en el panel el texto seguiría prometiendo la tarifa anterior: el mismo
+  // problema que ya resolvieron los otros dos tokens.
+  const zs = (FF.SHIP_ZONES || []).filter((z) => z && (z.municipio || z.depto));
+  const zTxt = zs.length
+    ? "En " + zs.map((z) => `${z.municipio || z.depto} el envío cuesta ${money(z.cost)}`).join(", y en ") + "."
+    : "";
   return s
     .replace(/\{envioGratis\}/g, money(FF.FREE_SHIP || 400))
-    .replace(/\{costoEnvio\}/g, money(FF.SHIP_COST || 35));
+    .replace(/\{costoEnvio\}/g, money(FF.SHIP_COST || 35))
+    .replace(/\{zonasEnvio\}/g, zTxt)
+    .replace(/\s{2,}/g, " ").trim();   // el token vacío deja dos espacios donde iba
 }
 const num = (n) => Number(n).toLocaleString("en-US");
 

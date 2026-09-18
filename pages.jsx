@@ -1066,7 +1066,7 @@ const CONTENT_PAGES = {
     blocks: [
       { h: "Cobertura", p: "Enviamos a toda la República de Guatemala a través de mensajería nacional, a cualquiera de los 22 departamentos." },
       { h: "Tiempos de entrega", p: "El tiempo estimado de entrega es de 2 a 3 días hábiles a cualquier punto del país, contados a partir de la confirmación de tu pedido." },
-      { h: "Costo de envío", p: "Tarifa plana de {costoEnvio} a todo el país. En pedidos desde {envioGratis} el envío es gratis." },
+      { h: "Costo de envío", p: "Tarifa plana de {costoEnvio} a todo el país. En pedidos desde {envioGratis} el envío es gratis, sin importar a dónde. {zonasEnvio}" },
       { h: "Seguimiento", p: "Te avisamos por correo cada vez que tu pedido cambia de estado, y al despacharlo te enviamos el número de guía para que sigas tu paquete." },
     ],
   },
@@ -1659,26 +1659,36 @@ function OrderStatusPage({ ctx, route }) {
 }
 
 /* ---------------- CHECKOUT ---------------- */
-const GT_DEPTS = [
-  "Guatemala", "Sacatepéquez", "Chimaltenango", "Escuintla", "Quetzaltenango",
-  "Sololá", "Totonicapán", "Suchitepéquez", "Retalhuleu", "San Marcos",
-  "Huehuetenango", "Quiché", "Alta Verapaz", "Baja Verapaz", "Petén",
-  "Izabal", "Zacapa", "Chiquimula", "Jalapa", "Jutiapa", "El Progreso", "Santa Rosa",
-];
-const SHIP_COST = () => FF.SHIP_COST || 35;
+// La lista de departamentos se movió a public/data.js: el panel la necesita para el editor
+// de zonas de envío, y una segunda copia acabaría desincronizada.
+const GT_DEPTS = () => FF.GT_DEPTS || [];
 
 function CheckoutPage({ ctx }) {
   const items = ctx.cartItems || [];
   const user = ctx.user || null;
   const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+  // La dirección que se observa para recalcular el envío. Arranca en "Guatemala" igual que
+  // el defaultValue del <select>, para que estado y pantalla no empiecen contradiciéndose.
+  const [shipTo, setShipTo] = React.useState({ depto: "Guatemala", municipio: "" });
+  const zone = FF.shipZoneFor ? FF.shipZoneFor(shipTo.depto, shipTo.municipio) : null;
   const freeShip = subtotal >= (FF.FREE_SHIP || 400);
-  const shipping = freeShip ? 0 : SHIP_COST();
+  // El envío gratis sigue dependiendo SOLO del mínimo. La zona no lo regala: solo abarata
+  // la tarifa de quien no llega al mínimo.
+  const shipping = freeShip ? 0 : (FF.shipCostFor ? FF.shipCostFor(shipTo.depto, shipTo.municipio) : (FF.SHIP_COST || 35));
   const [sending, setSending] = React.useState(false);
   const [promoInput, setPromoInput] = React.useState("");
   const [promo, setPromo] = React.useState(null);
   const [promoErr, setPromoErr] = React.useState("");
   const [promoLoading, setPromoLoading] = React.useState(false);
   const [savedAddr, setSavedAddr] = React.useState(null);
+  // La fila REAL de la dirección guardada. Hace falta aparte de `savedAddr` porque abajo
+  // puede que no se aplique (si ya empezó a escribir) y el guard de inserción mira esto:
+  // sin él se insertaría una SEGUNDA fila en `addresses` y el .single() elegiría a capricho.
+  const savedAddrRow = React.useRef(null);
+  // Si ya tocó el formulario, la dirección guardada no se aplica: el `key` remontaría el
+  // formulario y le borraría lo escrito, y además el envío observado y lo que hay en
+  // pantalla acabarían diciendo cosas distintas.
+  const touched = React.useRef(false);
   // Elegible al código de bienvenida solo si es logueado y aún no tiene pedidos.
   const [welcomeEligible, setWelcomeEligible] = React.useState(false);
 
@@ -1690,10 +1700,29 @@ function CheckoutPage({ ctx }) {
   React.useEffect(() => {
     if (!user) { setWelcomeEligible(false); return; }
     sb.from("addresses").select("*").eq("user_id", user.id).limit(1).single()
-      .then(({ data }) => { if (data) setSavedAddr(data); });
+      .then(({ data }) => {
+        if (!data) return;
+        savedAddrRow.current = data;
+        if (touched.current) return;
+        setSavedAddr(data);
+        setShipTo({ depto: data.departamento || "Guatemala", municipio: data.municipio || "" });
+      });
     sb.from("orders").select("*", { count: "exact", head: true }).eq("user_id", user.id)
       .then(({ count }) => setWelcomeEligible((count || 0) === 0));
   }, [user]);
+
+  // Con addEventListener('change') no serviría: en un campo de texto el `change` nativo solo
+  // salta al perder el foco, y el resumen se actualizaría tarde.
+  const onFormChange = (e) => {
+    const n = e.target.name;
+    touched.current = true;
+    if (n === "departamento") setShipTo((z) => ({ ...z, depto: e.target.value }));
+    else if (n === "municipio") setShipTo((z) => ({ ...z, municipio: e.target.value }));
+  };
+
+  const deptoZones = (FF.SHIP_ZONES || []).filter(
+    (z) => z && z.municipio && FF.normZone(z.depto) === FF.normZone(shipTo.depto)
+  );
 
   const promoPlaceholder = welcomeEligible ? "BIENVENIDO10" : "Ingresa tu código";
 
@@ -1754,7 +1783,7 @@ function CheckoutPage({ ctx }) {
       lines.join("\n") +
       `\n\nSubtotal: ${money(subtotal)}\n` +
       (discountAmt > 0 ? `Descuento (${promo.code}): -${money(discountAmt)}\n` : "") +
-      `Envío: ${shipping === 0 ? "Gratis" : money(shipping)}\nTotal: ${money(total)}\n\n` +
+      `Envío: ${shipping === 0 ? "Gratis (mínimo alcanzado)" : money(shipping) + (zone ? ` (tarifa ${FF.zoneLabel(zone)})` : "")}\nTotal: ${money(total)}\n\n` +
       `Cliente: ${g("nombre")}\nTel: ${g("telefono")}\nCorreo: ${g("correo")}\n` +
       `Dirección: ${g("direccion")}, ${g("municipio")}, ${g("departamento")}\n` +
       (g("referencia") ? `Referencia: ${g("referencia")}\n` : "") +
@@ -1863,7 +1892,7 @@ function CheckoutPage({ ctx }) {
       notifyNewOrder(orderData, detalle).catch(() => {});  // aviso a la tienda
       // Guardar la dirección para la próxima compra. Antes vivía dentro del bloque
       // crítico, donde un corte de red justo después del RPC duplicaba el pedido.
-      if (user && !savedAddr) {
+      if (user && !savedAddrRow.current) {
         sb.from("addresses").insert({
           user_id: user.id,
           direccion: g("direccion"), municipio: g("municipio"),
@@ -1921,7 +1950,7 @@ function CheckoutPage({ ctx }) {
         <PageHead eyebrow="Casi listo" title="Finalizar compra" sub="Completa tus datos de envío y elige cómo pagar." />
 
         <div className="checkout-grid">
-          <form className="checkout-form" onSubmit={placeOrder} key={savedAddr?.id || "no-addr"}>
+          <form className="checkout-form" onSubmit={placeOrder} onChange={onFormChange} key={savedAddr?.id || "no-addr"}>
             <h3 className="co-h">Datos de contacto</h3>
             {user && <p className="co-logged-as"><Icon name="user" size={13} /> Comprando como <b>{user.user_metadata?.full_name || user.email}</b></p>}
             <div className="co-row">
@@ -1938,11 +1967,27 @@ function CheckoutPage({ ctx }) {
             <div className="co-row">
               <label>Departamento
                 <select required name="departamento" defaultValue={savedAddr?.departamento || "Guatemala"}>
-                  {GT_DEPTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  {GT_DEPTS().map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </label>
-              <label>Municipio<input required name="municipio" type="text" placeholder="Municipio"
-                defaultValue={savedAddr?.municipio || ""} /></label>
+              <label>Municipio
+                <input required name="municipio" type="text" placeholder="Municipio"
+                  list={deptoZones.length ? "co-muni-zonas" : undefined}
+                  defaultValue={savedAddr?.municipio || ""} />
+                {/* La tarifa reducida depende de este campo escrito a mano. La lista y el
+                    aviso convierten la mayoría de las erratas en aciertos, en el único
+                    momento en que se puede: mientras lo escribe. */}
+                {deptoZones.length > 0 && (
+                  <>
+                    <datalist id="co-muni-zonas">
+                      {deptoZones.map((z) => <option key={z.municipio} value={z.municipio} />)}
+                    </datalist>
+                    <small className="co-hint">
+                      Envío a {money(deptoZones[0].cost)} en {deptoZones.map((z) => z.municipio).join(", ")} — escríbelo igual.
+                    </small>
+                  </>
+                )}
+              </label>
             </div>
             <label>Referencia (opcional)<input name="referencia" type="text" placeholder="Casa color, punto de referencia…"
               defaultValue={savedAddr?.referencia || ""} /></label>
@@ -2001,7 +2046,12 @@ function CheckoutPage({ ctx }) {
               ))}
             </div>
             <div className="co-line"><span>Subtotal</span><b>{money(subtotal)}</b></div>
-            <div className="co-line"><span>Envío</span><b>{shipping === 0 ? `Gratis` : money(shipping)}</b></div>
+            <div aria-live="polite">
+              <div className="co-line"><span>Envío</span><b>{shipping === 0 ? `Gratis` : money(shipping)}</b></div>
+              {!freeShip && zone && (
+                <p className="co-ship-note">Tarifa de {FF.zoneLabel(zone)}. Gratis desde {money(FF.FREE_SHIP || 400)}.</p>
+              )}
+            </div>
             {promo && <div className="co-line co-discount"><span>Descuento ({promo.code})</span><b>-{money(discountAmt)}</b></div>}
             <div className="co-total"><span>Total</span><b>{money(total)}</b></div>
             {/* Misma barra que el carrito, pero sin sugerencia: en el momento de confirmar,
