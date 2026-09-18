@@ -636,6 +636,14 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
             <button class="btn btn-primary" id="btn-add-stat">Añadir</button>
           </div>
           <p style="color:var(--dim);font-size:12.5px;margin:12px 0 8px">
+            <b>Escribe las cifras de envío con estas etiquetas</b>, no a mano: se rellenan solas
+            con lo que tengas configurado, así que al cambiar el mínimo o la tarifa el texto no
+            se queda prometiendo el número viejo.<br>
+            <code>{envioGratis}</code> → el mínimo para envío gratis ·
+            <code>{costoEnvio}</code> → la tarifa estándar ·
+            <code>{zonasEnvio}</code> → las zonas con tarifa propia
+          </p>
+          <p style="color:var(--dim);font-size:12.5px;margin:12px 0 8px">
             La cinta y la FAQ se guardan en el catálogo publicado, así que una versión vieja
             puede seguir mostrándose aunque el código ya esté corregido. Este botón trae los
             textos que vienen con la tienda; después hay que Publicar.
@@ -692,6 +700,14 @@ select.status-sel{padding:5px 8px;border-radius:6px;font-size:12px;font-weight:6
 
         <div class="settings-card">
           <h3>Preguntas frecuentes (FAQ)</h3>
+          <p style="color:var(--dim);font-size:12.5px;margin:12px 0 8px">
+            <b>Escribe las cifras de envío con estas etiquetas</b>, no a mano: se rellenan solas
+            con lo que tengas configurado, así que al cambiar el mínimo o la tarifa el texto no
+            se queda prometiendo el número viejo.<br>
+            <code>{envioGratis}</code> → el mínimo para envío gratis ·
+            <code>{costoEnvio}</code> → la tarifa estándar ·
+            <code>{zonasEnvio}</code> → las zonas con tarifa propia
+          </p>
           <div id="faq-rows" style="display:flex;flex-direction:column;gap:12px"></div>
           <div style="display:flex;gap:8px;margin-top:12px">
             <button class="btn btn-ghost" id="btn-add-faq">+ Añadir pregunta</button>
@@ -2129,7 +2145,7 @@ function renderAjustes() {
   renderZones();
   document.getElementById('stat-rows').innerHTML = D.stats.map((s, i) => `
     <div class="stat-row">
-      <span>${esc(s)}</span>
+      <span>${esc(s)}${cifraAMano(s) ? ' <b style="color:var(--warn,#d98324)" title="Usa {envioGratis} o {costoEnvio} para que se actualice solo">⚠ cifra a mano</b>' : ''}</span>
       <button onclick="delStat(${i})">✕</button>
     </div>
   `).join('') || '<p style="color:var(--dim);font-size:13px">Sin ítems.</p>';
@@ -2178,6 +2194,7 @@ function renderFaq() {
     <div class="faq-edit" data-i="${i}">
       <div class="fg"><input class="faq-q" value="${esc(f.q)}" placeholder="Pregunta" /></div>
       <div class="fg" style="margin-top:6px"><textarea class="faq-a" placeholder="Respuesta">${esc(f.a)}</textarea></div>
+      ${cifraAMano(f.a) ? '<p style="color:var(--warn,#d98324);font-size:12px;margin:4px 0 0">⚠ Hay una cifra en quetzales escrita a mano. Cámbiala por <code>{envioGratis}</code> o <code>{costoEnvio}</code> y se actualizará sola.</p>' : ''}
       <button class="btn btn-sm btn-danger" style="margin-top:6px;align-self:flex-start" onclick="delFaq(${i})">Eliminar</button>
     </div>
   `).join('') || '<p style="color:var(--dim);font-size:13px">Sin preguntas.</p>';
@@ -2212,6 +2229,14 @@ function saveContact() {
 
 function saveFaq() { D.faq = readFaqFromDom(); save(); renderFaq(); }
 function delStat(i) { D.stats.splice(i, 1); save(); renderAjustes(); }
+// Una cifra en quetzales escrita a mano en un texto que NO usa etiquetas: al cambiar el
+// mínimo o la tarifa, ese texto se queda mintiendo. Es lo que pasó con "ENVÍO GRATIS +Q400".
+function cifraAMano(txt) {
+  const t = String(txt || '');
+  if (/\{(envioGratis|costoEnvio|zonasEnvio)\}/.test(t)) return false;
+  return /Q\s?\d{2,}/i.test(t);
+}
+
 function renderZones() {
   const sel = document.getElementById('new-zone-depto');
   if (sel && !sel.options.length) sel.innerHTML = (FF.GT_DEPTS || []).map(d => `<option>${esc(d)}</option>`).join('');

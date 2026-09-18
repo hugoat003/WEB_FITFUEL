@@ -1,8 +1,10 @@
 // FITFUEL — catálogo y contenido (Guatemala). Globals en window.
 window.FF = window.FF || {};
 
-// Umbral de envío gratis (Quetzales)
-FF.FREE_SHIP = 400;
+// Umbral de envío gratis (Quetzales) — editable desde el panel.
+// OJO: el catálogo publicado pisa este valor, así que cambiarlo aquí no mueve la tienda.
+// Esto es solo el valor de fábrica y el respaldo si el catálogo publicado no llega.
+FF.FREE_SHIP = 500;
 
 // Costo de envío estándar (Quetzales) — editable desde el admin
 FF.SHIP_COST = 35;
